@@ -1,0 +1,40 @@
+{
+  "name": "DS-00_ErrorHandler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-error-trigger",
+      "name": "Error Trigger Global",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO eventos_webhook (origen, payload_raw, procesado, error_log)\nVALUES ('error_sistema_n8n', $1::jsonb, TRUE, $2);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.execution), $json.execution.error.message] }}"
+        }
+      },
+      "id": "node-db-log-error",
+      "name": "DB: Registrar Error en Auditoría",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 300]
+    }
+  ],
+  "connections": {
+    "Error Trigger Global": {
+      "main": [
+        [
+          {
+            "node": "DB: Registrar Error en Auditoría",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "name": "DS-02_AgentRouter",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "node-agent-trigger",
+      "name": "Trigger: Mensaje Consolidado",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT c.id AS conversacion_id, c.estado, c.cliente_id\nFROM conversaciones c\nJOIN clientes cl ON cl.id = c.cliente_id\nWHERE cl.wa_id = $1\nORDER BY c.ultimo_mensaje_en DESC\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [$json.wa_id] }}"
+        }
+      },
+      "id": "node-db-check-state",
+      "name": "DB: Consultar Estado Conversación",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-bot-active",
+              "leftValue": "={{ $json.estado }}",
+              "rightValue": "activa",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-is-active",
+      "name": "¿Bot Activo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT remitente, texto\nFROM mensajes\nWHERE conversacion_id = $1::uuid\nORDER BY creado_en DESC\nLIMIT 6;",
+        "options": {
+          "queryReplacement": "={{ [$json.conversacion_id] }}"
+        }
+      },
+      "id": "node-db-get-memory",
+      "name": "DB: Cargar Últimos 6 Mensajes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [920, 240]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto }}",
+        "options": {
+          "systemMessage": "Eres Valentina, recepcionista virtual de Andrés Díaz - Tendencia en Peluquería. Atiende con calidez, responde dudas de balayage, cortes y tratamientos. Si el cliente busca disponibilidad, ejecuta la herramienta T-01_ConsultarDisponibilidad. Si confirma nombre, servicio y hora, ejecuta T-02_CrearCita. Si pide hablar con Andrés o una persona, ejecuta T-03_EscalarHumano. Sé breve, amable y profesional."
+        }
+      },
+      "id": "node-ai-agent",
+      "name": "AI Agent: Valentina (Andrés Peluquería)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1160, 240]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "node-llm-model",
+      "name": "OpenAI / Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [1160, 440]
+    },
+    {
+      "parameters": {
+        "workflowId": "DS-03_MessageOut",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wa_id": "={{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}",
+            "texto": "={{ $json.output }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "node-call-message-out",
+      "name": "Ejecutar DS-03_MessageOut",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1440, 240]
+    }
+  ],
+  "connections": {
+    "Trigger: Mensaje Consolidado": {
+      "main": [
+        [
+          {
+            "node": "DB: Consultar Estado Conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Consultar Estado Conversación": {
+      "main": [
+        [
+          {
+            "node": "¿Bot Activo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Bot Activo?": {
+      "main": [
+        [
+          {
+            "node": "DB: Cargar Últimos 6 Mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Cargar Últimos 6 Mensajes": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Valentina (Andrés Peluquería)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI / Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Valentina (Andrés Peluquería)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Valentina (Andrés Peluquería)": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar DS-03_MessageOut",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

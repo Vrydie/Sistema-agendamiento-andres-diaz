@@ -1,0 +1,190 @@
+{
+  "name": "T-02_CrearCita",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "node-trigger-t02",
+      "name": "Tool Trigger: Crear Cita",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, nombre, duracion_minutos, precio_base_cop FROM servicios WHERE codigo = $1 OR nombre ILIKE '%' || $1 || '%' LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [$json.servicio || 'corte_styling'] }}"
+        }
+      },
+      "id": "node-db-find-service",
+      "name": "DB: Buscar Servicio",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Tool Trigger: Crear Cita').first().json;\nconst servicio = $input.first().json;\n\nconst fechaInicio = new Date(input.fecha_hora);\nconst duracionMs = (servicio.duracion_minutos || 60) * 60 * 1000;\nconst fechaFin = new Date(fechaInicio.getTime() + duracionMs);\n\nreturn [{\n  json: {\n    wa_id: input.wa_id,\n    nombre_cliente: input.nombre_cliente || 'Cliente',\n    servicio_id: servicio.id,\n    nombre_servicio: servicio.nombre,\n    precio: servicio.precio_base_cop,\n    fecha_inicio: fechaInicio.toISOString(),\n    fecha_fin: fechaFin.toISOString()\n  }\n}];"
+      },
+      "id": "node-calc-dates",
+      "name": "Calcular Horas y Duración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT verificar_solapamiento_cita($1::timestamptz, $2::timestamptz) AS hay_conflicto;",
+        "options": {
+          "queryReplacement": "={{ [$json.fecha_inicio, $json.fecha_fin] }}"
+        }
+      },
+      "id": "node-check-overlap",
+      "name": "DB: Verificar Anti-Solapamiento",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [920, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-no-overlap",
+              "leftValue": "={{ $json.hay_conflicto }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-is-free",
+      "name": "¿Horario Libre?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1160, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO citas (cliente_id, servicio_id, fecha_inicio, fecha_fin, estado, notas)\nSELECT cl.id, $2::uuid, $3::timestamptz, $4::timestamptz, 'confirmada', 'Agendado por Asistente IA WhatsApp'\nFROM clientes cl\nWHERE cl.wa_id = $1\nRETURNING id, fecha_inicio, fecha_fin;",
+        "options": {
+          "queryReplacement": "={{ [$('Calcular Horas y Duración').first().json.wa_id, $('Calcular Horas y Duración').first().json.servicio_id, $('Calcular Horas y Duración').first().json.fecha_inicio, $('Calcular Horas y Duración').first().json.fecha_fin] }}"
+        }
+      },
+      "id": "node-db-insert-cita",
+      "name": "DB: Guardar Cita Confirmada",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1400, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cita = $input.first().json;\nconst info = $('Calcular Horas y Duración').first().json;\n\nreturn [{\n  json: {\n    exito: true,\n    cita_id: cita.id,\n    mensaje: `¡Listo! Tu cita para ${info.nombre_servicio} ha quedado confirmada para el ${new Date(cita.fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}. Te esperamos en Cra 83 # 09.`\n  }\n}];"
+      },
+      "id": "node-success-response",
+      "name": "Respuesta Éxito Cita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1640, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    exito: false,\n    mensaje: 'Lo sentimos, ese espacio exacto acaba de ocuparse en la agenda. Por favor indícale al cliente otro horario cercano disponible.'\n  }\n}];"
+      },
+      "id": "node-conflict-response",
+      "name": "Respuesta Conflicto Horario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 420]
+    }
+  ],
+  "connections": {
+    "Tool Trigger: Crear Cita": {
+      "main": [
+        [
+          {
+            "node": "DB: Buscar Servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Buscar Servicio": {
+      "main": [
+        [
+          {
+            "node": "Calcular Horas y Duración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Horas y Duración": {
+      "main": [
+        [
+          {
+            "node": "DB: Verificar Anti-Solapamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Verificar Anti-Solapamiento": {
+      "main": [
+        [
+          {
+            "node": "¿Horario Libre?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Horario Libre?": {
+      "main": [
+        [
+          {
+            "node": "DB: Guardar Cita Confirmada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta Conflicto Horario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Guardar Cita Confirmada": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Éxito Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

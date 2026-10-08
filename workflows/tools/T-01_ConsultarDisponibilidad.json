@@ -1,0 +1,63 @@
+{
+  "name": "T-01_ConsultarDisponibilidad",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "node-trigger-t01",
+      "name": "Tool Trigger: Consultar Disponibilidad",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.nombre, s.duracion_minutos, s.precio_base_cop\nFROM servicios s\nWHERE s.codigo = $1 OR s.nombre ILIKE '%' || $1 || '%'\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [$json.servicio || 'balayage_signature'] }}"
+        }
+      },
+      "id": "node-db-get-service",
+      "name": "DB: Obtener Duración Servicio",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generar bloques de horario disponibles para la fecha solicitada\nconst fecha = $('Tool Trigger: Consultar Disponibilidad').first().json.fecha || new Date().toISOString().split('T')[0];\nconst duracion = $input.first().json.duracion_minutos || 60;\nconst nombreServicio = $input.first().json.nombre || 'Servicio';\n\n// Simulación inteligente de slots (en producción se cruza con Google Calendar API)\nconst slotsDisponibles = [\n  `${fecha} 09:30:00`,\n  `${fecha} 11:45:00`,\n  `${fecha} 15:00:00`,\n  `${fecha} 17:30:00`\n];\n\nreturn [{\n  json: {\n    servicio: nombreServicio,\n    duracion_minutos: duracion,\n    fecha_consultada: fecha,\n    horarios_disponibles: slotsDisponibles,\n    mensaje_sugerido: `Tenemos disponibilidad para ${nombreServicio} el ${fecha} a las: 9:30 AM, 11:45 AM, 3:00 PM y 5:30 PM.`\n  }\n}];"
+      },
+      "id": "node-calc-slots",
+      "name": "Calcular Horarios Libres",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Tool Trigger: Consultar Disponibilidad": {
+      "main": [
+        [
+          {
+            "node": "DB: Obtener Duración Servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Obtener Duración Servicio": {
+      "main": [
+        [
+          {
+            "node": "Calcular Horarios Libres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

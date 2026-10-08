@@ -1,0 +1,81 @@
+{
+  "name": "DS-03_MessageOut",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "node-start-transport",
+      "name": "Entrada: Mensaje a Enviar",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": \"{{ $json.wa_id }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"preview_url\": false,\n    \"body\": \"{{ $json.texto }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node-http-send-wa",
+      "name": "HTTP: Enviar WhatsApp Meta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO mensajes (conversacion_id, remitente, texto)\nSELECT c.id, 'asistente_ia', $2\nFROM conversaciones c\nJOIN clientes cl ON cl.id = c.cliente_id\nWHERE cl.wa_id = $1 AND c.estado = 'activa'\nORDER BY c.ultimo_mensaje_en DESC\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [$('Entrada: Mensaje a Enviar').first().json.wa_id, $('Entrada: Mensaje a Enviar').first().json.texto] }}"
+        }
+      },
+      "id": "node-db-audit-out",
+      "name": "DB: Guardar Mensaje Saliente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Entrada: Mensaje a Enviar": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Enviar WhatsApp Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Enviar WhatsApp Meta": {
+      "main": [
+        [
+          {
+            "node": "DB: Guardar Mensaje Saliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

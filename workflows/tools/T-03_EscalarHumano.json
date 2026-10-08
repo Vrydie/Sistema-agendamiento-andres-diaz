@@ -1,0 +1,63 @@
+{
+  "name": "T-03_EscalarHumano",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "node-trigger-t03",
+      "name": "Tool Trigger: Escalar a Humano",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE conversaciones c\nSET estado = 'pausada_humano', pausada_hasta = CURRENT_TIMESTAMP + INTERVAL '4 hours'\nFROM clientes cl\nWHERE c.cliente_id = cl.id AND cl.wa_id = $1 AND c.estado = 'activa'\nRETURNING c.id;",
+        "options": {
+          "queryReplacement": "={{ [$json.wa_id] }}"
+        }
+      },
+      "id": "node-db-pause-bot",
+      "name": "DB: Pausar Bot 4 Horas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const motivo = $('Tool Trigger: Escalar a Humano').first().json.motivo || 'Solicitud de atención personalizada';\nconst wa_id = $('Tool Trigger: Escalar a Humano').first().json.wa_id;\n\nreturn [{\n  json: {\n    exito: true,\n    mensaje: 'Comprendo perfectamente. Le he dejado una notificación directa a Andrés con tus mensajes para que te atienda personalmente en cuanto se desocupe.',\n    alerta_admin: `⚠️ ATENCIÓN: El cliente ${wa_id} solicitó hablar con una persona. Motivo: ${motivo}. Bot pausado.`\n  }\n}];"
+      },
+      "id": "node-human-escalated",
+      "name": "Formatear Mensaje de Notificación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Tool Trigger: Escalar a Humano": {
+      "main": [
+        [
+          {
+            "node": "DB: Pausar Bot 4 Horas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Pausar Bot 4 Horas": {
+      "main": [
+        [
+          {
+            "node": "Formatear Mensaje de Notificación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

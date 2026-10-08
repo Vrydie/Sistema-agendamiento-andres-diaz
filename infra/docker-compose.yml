@@ -1,0 +1,61 @@
+services:
+  # Base de Datos Relacional para Memoria, Auditoría y Debounce
+  postgres:
+    image: postgres:16-alpine
+    container_name: andres_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-andres_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-andres_secret_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-andres_peluqueria}
+      TZ: America/Bogota
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../database/init:/docker-entrypoint-initdb.d
+    networks:
+      - andres_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U andres_admin -d andres_peluqueria"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Orquestador n8n (Community Edition - Sin límite de ejecuciones)
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: andres_n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_HOST=localhost
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB:-andres_peluqueria}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-andres_admin}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-andres_secret_2026}
+      - GENERIC_TIMEZONE=America/Bogota
+      - TZ=America/Bogota
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - andres_net
+
+volumes:
+  postgres_data:
+  n8n_data:
+
+networks:
+  andres_net:
+    driver: bridge
