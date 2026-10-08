@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Andrés Díaz | Tendencia en Peluquería & Balayage</title>
+  <meta name="description"
+    content="Salón de belleza especializado en Balayage, Diseño de Color, Corte y Tendencia en Peluquería por Andrés Díaz. Agenda tu cita en segundos por WhatsApp.">
+
+  <!-- Open Graph / Redes Sociales (Para vista previa en WhatsApp) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Andrés Díaz | Tendencia en Peluquería & Balayage">
+  <meta property="og:description"
+    content="Especialistas en diseño de color, balayage y cambios de look. Agenda tu cita en WhatsApp con nuestro asistente 24/7.">
+  <meta property="og:image" content="assets/images/logo.png">
+
+  <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Estilos Principales -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/x-icon" href="assets/images/logo2.png">
+</head>
+
+<body>
+
+  <!-- Top Alert / Estado en Vivo -->
+  <div class="top-bar">
+    <div class="container top-bar-content">
+      <span class="status-indicator">
+        <span class="pulse-dot" id="statusDot"></span>
+        <span id="statusText">Abierto hoy • 9:00 AM a 8:00 PM</span>
+      </span>
+      <span class="top-location">📍 Cra 83 # 09 • Atención con cita previa</span>
+    </div>
+  </div>
+
+  <!-- Header / Barra de Navegación -->
+  <header class="navbar" id="navbar">
+    <div class="container nav-content">
+      <a href="#" class="brand-logo" aria-label="Andrés Díaz Peluquería">
+        <img src="assets/images/logo.png" alt="Logo Andrés Díaz Tendencia en Peluquería" class="logo-img">
+      </a>
+
+      <nav class="nav-links">
+        <a href="#servicios">Servicios</a>
+        <a href="#experiencia">Andrés Díaz</a>
+        <a href="#galeria">Resultados</a>
+        <a href="#faq">Preguntas</a>
+      </nav>
+
+      <a href="#agendar" class="btn btn-primary nav-cta whatsapp-trigger" data-service="General" id="navCtaBtn">
+        <svg class="icon-wa" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path
+            d="M17.5 14.4c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.2.3-.4.5-.6.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.9s1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1.8.3 1.4.6 1.9.7.8.3 1.6.2 2.2.1.7-.1 2.1-.9 2.4-1.7.3-.8.3-1.6.2-1.7-.1-.2-.3-.3-.6-.4zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.3-1.4c1.4.8 3.1 1.3 4.7 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.2.8.9-3.1-.2-.3c-.9-1.4-1.3-2.9-1.3-4.5 0-4.6 3.8-8.4 8.4-8.4 4.6 0 8.4 3.8 8.4 8.4 0 4.6-3.8 8.5-8.4 8.5z" />
+        </svg>
+        <span>Agendar Cita</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section" id="hero">
+    <div class="hero-backdrop"></div>
+    <div class="container hero-content">
+      <div class="hero-text-block">
+        <div class="trust-pill">
+          <span class="stars">★★★★★</span>
+          <span>4.9 / 5 • Más de 800 cambios de look exitosos</span>
+        </div>
+
+        <h1 class="hero-title">
+          Diseño de Color, <span class="gold-gradient">Balayage & Tendencia</span> que proyectan tu mejor versión.
+        </h1>
+
+        <p class="hero-description">
+          Técnicas de vanguardia, diagnóstico personalizado y cuidado capilar premium en manos de Andrés Díaz. Vive una
+          experiencia exclusiva sin esperas innecesarias.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#agendar" class="btn btn-gold-glow whatsapp-trigger" data-service="Asesoría y Diagnóstico General"
+            id="heroPrimaryCta">
+            <svg class="icon-wa" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path
+                d="M17.5 14.4c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.2.3-.4.5-.6.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.9s1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1.8.3 1.4.6 1.9.7.8.3 1.6.2 2.2.1.7-.1 2.1-.9 2.4-1.7.3-.8.3-1.6.2-1.7-.1-.2-.3-.3-.6-.4zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.3-1.4c1.4.8 3.1 1.3 4.7 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.2.8.9-3.1-.2-.3c-.9-1.4-1.3-2.9-1.3-4.5 0-4.6 3.8-8.4 8.4-8.4 4.6 0 8.4 3.8 8.4 8.4 0 4.6-3.8 8.5-8.4 8.5z" />
+            </svg>
+            <span>Agendar Cita en WhatsApp</span>
+          </a>
+
+          <a href="#servicios" class="btn btn-outline" id="heroSecondaryBtn">
+            Ver Servicios & Tarifas
+          </a>
+        </div>
+
+        <div class="hero-badges">
+          <div class="badge-item">
+            <span class="badge-icon">✨</span>
+            <span class="badge-text">Diagnóstico personalizado</span>
+          </div>
+          <div class="badge-item">
+            <span class="badge-icon">⏱️</span>
+            <span class="badge-text">Puntualidad garantizada</span>
+          </div>
+          <div class="badge-item">
+            <span class="badge-icon">💎</span>
+            <span class="badge-text">Productos de alta gama</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-image-block">
+        <div class="image-frame-gold">
+          <img src="assets/images/balayage_caramelo.png" alt="Andrés Díaz con clienta tras cambio de look"
+            class="hero-main-img">
+          <div class="image-card-caption">
+            <div class="caption-title">Transformación Real</div>
+            <div class="caption-subtitle">Balayage Rubio Iluminado & Styling</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Catálogo de Servicios Clave -->
+  <section class="services-section" id="servicios">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">NUESTRA ESPECIALIDAD</span>
+        <h2 class="section-title">Servicios Diseñados para Resaltar tu Belleza</h2>
+        <p class="section-subtitle">Selecciona el servicio que deseas y nuestro asistente en WhatsApp te asignará el
+          horario ideal de inmediato.</p>
+      </div>
+
+      <div class="services-grid">
+
+        <!-- Servicio 1: Balayage & Diseño de Color (Destacado) -->
+        <div class="service-card featured">
+          <div class="popular-ribbon">MÁS SOLICITADO</div>
+          <div class="service-header">
+            <div class="service-meta">
+              <span class="service-duration">⏱️ 3 a 4 horas aprox.</span>
+            </div>
+            <h3 class="service-name">Balayage Signature & Diseño de Color</h3>
+            <p class="service-desc">
+              Técnica personalizada de degradado a mano alzada. Tonos miel, caramelo, avellana o rubio nórdico con
+              protección capilar y matiz de alta duración.
+            </p>
+          </div>
+          <ul class="service-features">
+            <li>✔ Diagnóstico de salud capilar previo</li>
+            <li>✔ Aclaración controlada con plex protector</li>
+            <li>✔ Baño de color / matización premium</li>
+            <li>✔ Lavado nutritivo y peinado con ondas de tendencia</li>
+          </ul>
+          <div class="service-footer">
+            <div class="price-box">
+              <span class="price-label">Inversión desde</span>
+              <span class="price-value">$180.000 COP</span>
+            </div>
+            <a href="#agendar" class="btn btn-gold-block whatsapp-trigger"
+              data-service="Balayage Signature & Diseño de Color">
+              <span>Agendar Balayage</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Servicio 2: Corte de Tendencia & Brushing -->
+        <div class="service-card">
+          <div class="service-header">
+            <div class="service-meta">
+              <span class="service-duration">⏱️ 45 a 60 min</span>
+            </div>
+            <h3 class="service-name">Corte de Tendencia & Styling</h3>
+            <p class="service-desc">
+              Asesoría de visagismo según las facciones de tu rostro. Cortes en capas, bob, mariposa o flequillo cortina
+              con acabado en cepillado u ondas.
+            </p>
+          </div>
+          <ul class="service-features">
+            <li>✔ Asesoría y definición de forma</li>
+            <li>✔ Lavado relajante con masaje capilar</li>
+            <li>✔ Corte de precisión técnica</li>
+            <li>✔ Peinado finalizado con productos de fijación ligera</li>
+          </ul>
+          <div class="service-footer">
+            <div class="price-box">
+              <span class="price-label">Inversión desde</span>
+              <span class="price-value">$45.000 COP</span>
+            </div>
+            <a href="#agendar" class="btn btn-outline-gold whatsapp-trigger"
+              data-service="Corte de Tendencia & Styling">
+              <span>Agendar Corte</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Servicio 3: Terapia de Hidratación & Reconstrucción -->
+        <div class="service-card">
+          <div class="service-header">
+            <div class="service-meta">
+              <span class="service-duration">⏱️ 60 a 75 min</span>
+            </div>
+            <h3 class="service-name">Terapia Nutritiva & Reparación</h3>
+            <p class="service-desc">
+              Tratamiento intensivo para cabello reseco o procesado químicamente. Devuelve brillo espejo, elasticidad,
+              suavidad y reduce el frizz.
+            </p>
+          </div>
+          <ul class="service-features">
+            <li>✔ Sellado de cutícula y nutrición profunda</li>
+            <li>✔ Cauterización de puntas abiertas</li>
+            <li>✔ Protección térmica de última generación</li>
+            <li>✔ Peinado final incluido</li>
+          </ul>
+          <div class="service-footer">
+            <div class="price-box">
+              <span class="price-label">Inversión desde</span>
+              <span class="price-value">$70.000 COP</span>
+            </div>
+            <a href="#agendar" class="btn btn-outline-gold whatsapp-trigger"
+              data-service="Terapia Nutritiva & Reparación">
+              <span>Agendar Terapia</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Servicio 4: Matiz, Brillo & Mantenimiento -->
+        <div class="service-card">
+          <div class="service-header">
+            <div class="service-meta">
+              <span class="service-duration">⏱️ 60 min</span>
+            </div>
+            <h3 class="service-name">Mantenimiento de Tono & Brillo Gloss</h3>
+            <p class="service-desc">
+              Renovación de color para balayage o mechas previas. Elimina visos amarillentos o cobrizos y recupera la
+              luminosidad del primer día.
+            </p>
+          </div>
+          <ul class="service-features">
+            <li>✔ Corrección y neutralización de reflejos</li>
+            <li>✔ Baño de brillo semipermanente (Gloss)</li>
+            <li>✔ Mascarilla de fijación ácida</li>
+            <li>✔ Peinado final de salón</li>
+          </ul>
+          <div class="service-footer">
+            <div class="price-box">
+              <span class="price-label">Inversión desde</span>
+              <span class="price-value">$65.000 COP</span>
+            </div>
+            <a href="#agendar" class="btn btn-outline-gold whatsapp-trigger"
+              data-service="Mantenimiento de Tono & Brillo Gloss">
+              <span>Agendar Matiz</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Sobre Andrés Díaz y la Experiencia -->
+  <section class="experience-section" id="experiencia">
+    <div class="container experience-grid">
+      <div class="experience-image-col">
+        <div class="dual-images">
+          <img src="assets/images/andres_con_cliente.png" alt="Balayage Caramelo Andrés Díaz"
+            class="img-preview img-accent">
+          <img src="assets/images/balayage_rubio.jpg" alt="Balayage Rubio Perfección" class="img-preview img-main">
+        </div>
+      </div>
+
+      <div class="experience-content-col">
+        <span class="section-tag">EL PROFESIONAL DETRÁS DE TU LOOK</span>
+        <h2 class="section-title">Pasión por el Detalle y la Salud de tu Cabello</h2>
+        <p class="exp-text">
+          En <strong>Andrés Díaz - Tendencia en Peluquería</strong>, creemos que un cambio de look no se trata solo de
+          aplicar color, sino de entender la textura de tu cabello, tu estilo de vida y lo que deseas transmitir.
+        </p>
+
+        <div class="pillars-list">
+          <div class="pillar-card">
+            <div class="pillar-icon">🔬</div>
+            <div>
+              <h4 class="pillar-title">Diagnóstico Previo Sin Costo</h4>
+              <p class="pillar-desc">Evaluamos la resistencia de tu hebra capilar antes de cualquier procedimiento
+                químico para garantizar salud y belleza duradera.</p>
+            </div>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">☕</div>
+            <div>
+              <h4 class="pillar-title">Atención Personalizada 1 a 1</h4>
+              <p class="pillar-desc">Sin salones saturados ni carreras. Tu espacio es reservado exclusivamente para ti
+                con café de cortesía y ambiente relajante.</p>
+            </div>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">📱</div>
+            <div>
+              <h4 class="pillar-title">Agendamiento Inteligente 24/7</h4>
+              <p class="pillar-desc">Nuestro asistente por WhatsApp responde a cualquier hora del día o noche para
+                asegurar tu turno en el calendario digital.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="exp-cta-wrapper">
+          <a href="#agendar" class="btn btn-gold-glow whatsapp-trigger" data-service="Diagnóstico con Andrés Díaz">
+            <span>Conversar con Andrés por WhatsApp</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Galería de Resultados / Showcase -->
+  <section class="gallery-section" id="galeria">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">PORTAFOLIO EN VIVO</span>
+        <h2 class="section-title">Resultados que Hablan por Sí Mismos</h2>
+        <p class="section-subtitle">Casos reales de clientes que confiaron su transformación en nuestras manos.</p>
+      </div>
+
+      <div class="gallery-grid">
+        <div class="gallery-item">
+          <img src="assets/images/balayage_caramelo.png" alt="Balayage tono Miel y Caramelo">
+          <div class="gallery-overlay">
+            <span class="tag">Balayage Caramelo Cálido</span>
+            <p>Diseño sin raíz marcada y ondas suaves.</p>
+          </div>
+        </div>
+
+        <div class="gallery-item">
+          <img src="assets/images/balayage_rubio.jpg" alt="Balayage Rubio Iluminado">
+          <div class="gallery-overlay">
+            <span class="tag">Rubio Vainilla & Contorno</span>
+            <p>Técnica de money piece con iluminación frontal.</p>
+          </div>
+        </div>
+
+        <div class="gallery-item">
+          <img src="assets/images/andres_con_cliente.png" alt="Cliente Feliz con Andrés Díaz">
+          <div class="gallery-overlay">
+            <span class="tag">Styling de Salón</span>
+            <p>Ondas glam y acabado con brillo sedoso.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Espacio reservado para los videos que subirá el usuario -->
+      <div class="video-placeholder-box" id="videoPlaceholder">
+        <div class="video-placeholder-inner">
+          <span class="video-icon">🎬</span>
+          <h4>Reels & Videos en Transformación</h4>
+          <p>Próximamente: videos de procesos de balayage y testimonios en video.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Preguntas Frecuentes (FAQ) -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">RESUELVE TUS DUDAS</span>
+        <h2 class="section-title">Preguntas Frecuentes</h2>
+        <p class="section-subtitle">Todo lo que necesitas saber antes de tu visita.</p>
+      </div>
+
+      <div class="accordion" id="faqAccordion">
+
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">
+            <span>¿Cómo funciona el agendamiento por WhatsApp?</span>
+            <span class="accordion-icon">+</span>
+          </button>
+          <div class="accordion-content">
+            <p>Al hacer clic en cualquier botón de esta web, se abrirá un chat directo en WhatsApp. Nuestro asistente
+              virtual inteligente te atenderá de inmediato las 24 horas, te consultará el día y la hora que prefieras, y
+              apartará tu cupo directamente en la agenda oficial de Andrés.</p>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">
+            <span>¿Cuáles son los métodos de pago aceptados?</span>
+            <span class="accordion-icon">+</span>
+          </button>
+          <div class="accordion-content">
+            <p>Aceptamos transferencias bancarias directas por Nequi, Daviplata, Bancolombia, pagos con tarjeta de
+              débito/crédito y efectivo en el salón.</p>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">
+            <span>¿Debo realizarme una prueba de mechón antes del Balayage?</span>
+            <span class="accordion-icon">+</span>
+          </button>
+          <div class="accordion-content">
+            <p>Sí, la salud de tu cabello es nuestra prioridad número uno. Si tu cabello tiene tintes oscuros previos o
+              procesos químicos fuertes, realizamos un diagnóstico previo para asegurarnos de que aclare con total
+              seguridad.</p>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">
+            <span>¿Qué pasa si necesito reprogramar o llego tarde?</span>
+            <span class="accordion-icon">+</span>
+          </button>
+          <div class="accordion-content">
+            <p>Solo escríbenos por WhatsApp con al menos 24 horas de anticipación para mover tu cita sin ningún costo.
+              Damos una tolerancia de 15 minutos de cortesía por el tráfico de la ciudad.</p>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">
+            <span>¿Hay parqueadero disponible?</span>
+            <span class="accordion-icon">+</span>
+          </button>
+          <div class="accordion-content">
+            <p>Sí, contamos con zonas de parqueadero seguras y vigilancia en las inmediaciones del salón para que
+              disfrutes tu cita con total tranquilidad.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Ubicación & Horarios -->
+  <section class="location-section" id="ubicacion">
+    <div class="container">
+      <div class="location-card">
+        <div class="location-info">
+          <span class="section-tag">ENCUÉNTRANOS</span>
+          <h2 class="location-title">Te Esperamos en Nuestro Salón</h2>
+
+          <div class="location-details">
+            <div class="loc-detail-item">
+              <span class="loc-icon">📍</span>
+              <div>
+                <strong>Dirección:</strong>
+                <p>Cra 83 # 09 (Fácil acceso, zona comercial segura)</p>
+              </div>
+            </div>
+
+            <div class="loc-detail-item">
+              <span class="loc-icon">🕒</span>
+              <div>
+                <strong>Horario de Atención:</strong>
+                <p>Lunes a Sábado: 9:00 AM - 8:00 PM<br>Domingos y Festivos: Con cita previa</p>
+              </div>
+            </div>
+
+            <div class="loc-detail-item">
+              <span class="loc-icon">💬</span>
+              <div>
+                <strong>Atención por WhatsApp:</strong>
+                <p>24 horas al día / 7 días a la semana (Respuesta inmediata)</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="location-actions">
+            <a href="https://maps.google.com/?q=Cra+83+%23+09" target="_blank" rel="noopener noreferrer"
+              class="btn btn-outline-gold" id="btnMaps">
+              🗺️ Abrir en Google Maps
+            </a>
+            <a href="#agendar" class="btn btn-gold-glow whatsapp-trigger" data-service="Consulta de Ubicación y Cita">
+              Agendar mi Turno
+            </a>
+          </div>
+        </div>
+
+        <div class="location-badge-visual">
+          <div class="visual-box">
+            <img src="assets/images/logo.png" alt="Andrés Díaz Logo" class="loc-logo">
+            <h3>Andrés Díaz</h3>
+            <p class="tagline">Tendencia en Peluquería</p>
+            <div class="status-pill-big" id="statusPillBig">
+              🟢 Abierto Hoy
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner Final -->
+  <section class="cta-banner" id="agendar">
+    <div class="container">
+      <div class="cta-banner-card">
+        <h2 class="cta-banner-title">¿Lista para Vivir tu Transformación?</h2>
+        <p class="cta-banner-desc">
+          Los cupos de cada semana se llenan con anticipación. Asegura tu horario ahora mismo conversando con nuestro
+          asistente inteligente.
+        </p>
+        <a href="#" class="btn btn-wa-giant whatsapp-trigger" data-service="Reserva Prioritaria General"
+          id="bottomWaBtn">
+          <svg class="icon-wa" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+            <path
+              d="M17.5 14.4c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.2.3-.4.5-.6.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.9s1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1.8.3 1.4.6 1.9.7.8.3 1.6.2 2.2.1.7-.1 2.1-.9 2.4-1.7.3-.8.3-1.6.2-1.7-.1-.2-.3-.3-.6-.4zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.3-1.4c1.4.8 3.1 1.3 4.7 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.2.8.9-3.1-.2-.3c-.9-1.4-1.3-2.9-1.3-4.5 0-4.6 3.8-8.4 8.4-8.4 4.6 0 8.4 3.8 8.4 8.4 0 4.6-3.8 8.5-8.4 8.5z" />
+          </svg>
+          <span>Escribir por WhatsApp Ahora</span>
+        </a>
+        <div class="secure-note">🔒 Respuesta en menos de 10 segundos • Sin compromiso</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <img src="assets/images/logo.png" alt="Logo Andrés Díaz" class="footer-logo">
+        <p>Especialistas en Balayage, Diseño de Color y Tendencia en Peluquería.</p>
+      </div>
+
+      <div class="footer-nav">
+        <h4>Enlaces Rápidos</h4>
+        <ul>
+          <li><a href="#servicios">Servicios</a></li>
+          <li><a href="#experiencia">Andrés Díaz</a></li>
+          <li><a href="#galeria">Resultados</a></li>
+          <li><a href="#faq">Preguntas</a></li>
+          <li><a href="#ubicacion">Ubicación</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-contact">
+        <h4>Contacto Directo</h4>
+        <p>Cra 83 # 09</p>
+        <p>WhatsApp: +57 300 000 0000</p>
+        <p>Lunes a Sábado: 9:00 AM - 8:00 PM</p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="container">
+        <p>&copy; 2026 Andrés Díaz - Tendencia en Peluquería. Todos los derechos reservados. Sistema desarrollado con
+          Automatización IA.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Botón Flotante de WhatsApp (FAB) -->
+  <div class="floating-whatsapp-container">
+    <div class="fab-tooltip">¿Dudas? Agenda en segundos aquí 👇</div>
+    <a href="#" class="floating-wa-btn whatsapp-trigger" data-service="Botón Flotante Rápido"
+      aria-label="Abrir chat de WhatsApp">
+      <svg class="fab-wa-icon" viewBox="0 0 24 24" width="34" height="34" fill="currentColor">
+        <path
+          d="M17.5 14.4c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.2.3-.4.5-.6.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.9s1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1.8.3 1.4.6 1.9.7.8.3 1.6.2 2.2.1.7-.1 2.1-.9 2.4-1.7.3-.8.3-1.6.2-1.7-.1-.2-.3-.3-.6-.4zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.3-1.4c1.4.8 3.1 1.3 4.7 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.2.8.9-3.1-.2-.3c-.9-1.4-1.3-2.9-1.3-4.5 0-4.6 3.8-8.4 8.4-8.4 4.6 0 8.4 3.8 8.4 8.4 0 4.6-3.8 8.5-8.4 8.5z" />
+      </svg>
+    </a>
+  </div>
+
+  <!-- Script Principal -->
+  <script src="script.js"></script>
+</body>
+
+</html>
