@@ -30,8 +30,7 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": \"{{ $json.wa_id }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"preview_url\": false,\n    \"body\": \"{{ $json.texto }}\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: $json.wa_id,\n  type: 'text',\n  text: {\n    preview_url: false,\n    body: $json.texto\n  }\n}) }}",
         "options": {}
       },
       "id": "node-http-send-wa",

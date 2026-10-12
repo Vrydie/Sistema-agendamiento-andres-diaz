@@ -4,12 +4,14 @@
   "nodes": [
     {
       "parameters": {
-        "inputSource": "passthrough"
+        "inputSource": "passthrough",
+        "inputDataMode": "defineWithExample",
+        "jsonExample": "{\n  \"nombre_cliente\": \"Carlos Gómez\",\n  \"servicio\": \"corte\",\n  \"fecha_hora\": \"2026-10-12T14:00:00\",\n  \"wa_id\": \"573108484221\"\n}"
       },
       "id": "node-trigger-t02",
       "name": "Tool Trigger: Crear Cita",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1,
+      "typeVersion": 1.1,
       "position": [200, 300]
     },
     {
@@ -28,7 +30,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Tool Trigger: Crear Cita').first().json;\nconst servicio = $input.first().json;\n\nconst fechaInicio = new Date(input.fecha_hora);\nconst duracionMs = (servicio.duracion_minutos || 60) * 60 * 1000;\nconst fechaFin = new Date(fechaInicio.getTime() + duracionMs);\n\nreturn [{\n  json: {\n    wa_id: input.wa_id,\n    nombre_cliente: input.nombre_cliente || 'Cliente',\n    servicio_id: servicio.id,\n    nombre_servicio: servicio.nombre,\n    precio: servicio.precio_base_cop,\n    fecha_inicio: fechaInicio.toISOString(),\n    fecha_fin: fechaFin.toISOString()\n  }\n}];"
+        "jsCode": "const input = $('Tool Trigger: Crear Cita').first().json;\nconst servicio = $input.first().json;\n\n// Si no viene fecha válida, asumir horario actual en Colombia\nlet fechaInicio = new Date(input.fecha_hora);\nif (isNaN(fechaInicio.getTime())) {\n  fechaInicio = new Date();\n}\n\nconst duracionMs = (servicio.duracion_minutos || 60) * 60 * 1000;\nconst fechaFin = new Date(fechaInicio.getTime() + duracionMs);\n\nreturn [{\n  json: {\n    wa_id: input.wa_id,\n    nombre_cliente: input.nombre_cliente || 'Cliente',\n    servicio_id: servicio.id,\n    nombre_servicio: servicio.nombre,\n    precio: servicio.precio_base_cop,\n    fecha_inicio: fechaInicio.toISOString(),\n    fecha_fin: fechaFin.toISOString(),\n    fecha_cita_formateada: fechaInicio.toLocaleString('es-CO', { timeZone: 'America/Bogota' })\n  }\n}];"
       },
       "id": "node-calc-dates",
       "name": "Calcular Horas y Duración",
@@ -94,13 +96,48 @@
     },
     {
       "parameters": {
-        "jsCode": "const cita = $input.first().json;\nconst info = $('Calcular Horas y Duración').first().json;\n\nreturn [{\n  json: {\n    exito: true,\n    cita_id: cita.id,\n    mensaje: `¡Listo! Tu cita para ${info.nombre_servicio} ha quedado confirmada para el ${new Date(cita.fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}. Te esperamos en Cra 83 # 09.`\n  }\n}];"
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "AndresPDB",
+          "mode": "list",
+          "cachedResultName": "AndresPDB"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Hoja 1",
+          "mode": "list",
+          "cachedResultName": "Hoja 1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha Registro": "={{ $now.setZone('America/Bogota').toFormat('yyyy-MM-dd HH:mm') }}",
+            "Nombre Cliente": "={{ $('Calcular Horas y Duración').first().json.nombre_cliente }}",
+            "WhatsApp": "={{ $('Calcular Horas y Duración').first().json.wa_id }}",
+            "Servicio": "={{ $('Calcular Horas y Duración').first().json.nombre_servicio }}",
+            "Fecha Cita": "={{ $('Calcular Horas y Duración').first().json.fecha_cita_formateada }}",
+            "Precio COP": "={{ $('Calcular Horas y Duración').first().json.precio }}",
+            "Estado": "Confirmada"
+          }
+        },
+        "options": {}
+      },
+      "id": "node-sheets-append",
+      "name": "Append row in sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1640, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const info = $('Calcular Horas y Duración').first().json;\n\nreturn [{\n  json: {\n    exito: true,\n    mensaje: `¡Listo! Tu cita para ${info.nombre_servicio} ha quedado confirmada para el ${info.fecha_cita_formateada}. Te esperamos en Cra 83 # 09.`\n  }\n}];"
       },
       "id": "node-success-response",
       "name": "Respuesta Éxito Cita",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1640, 240]
+      "position": [1880, 240]
     },
     {
       "parameters": {
@@ -177,6 +214,17 @@
       ]
     },
     "DB: Guardar Cita Confirmada": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
       "main": [
         [
           {
