@@ -1,19 +1,20 @@
 {
-  "id": "wDS01WebhookIn01",
   "name": "DS-01_WebhookIn",
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "GET",
-        "path": "webhook/whatsapp",
+        "path": "/whatsapp",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "node-webhook-get",
+      "id": "ba4514df-c9c9-4840-9289-04b8b1278df6",
       "name": "Meta Webhook Verificación (GET)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 200],
+      "position": [
+        -480,
+        48
+      ],
       "webhookId": "whatsapp-verify-get"
     },
     {
@@ -22,13 +23,14 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
               "id": "verify-token-check",
               "leftValue": "={{ $json.query['hub.verify_token'] }}",
-              "rightValue": "={{ $env.WHATSAPP_VERIFY_TOKEN || 'AndresPeluqueria2026' }}",
+              "rightValue": "=AndresPeluqueria2026",
               "operator": {
                 "type": "string",
                 "operation": "equals"
@@ -36,40 +38,50 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "node-check-token",
+      "id": "ddcfdd43-7ae2-48cd-99e9-7264ff22d48a",
       "name": "Validar Verify Token",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [440, 200]
+      "position": [
+        -240,
+        48
+      ]
     },
     {
       "parameters": {
         "respondWith": "text",
-        "responseBody": "={{ $('Meta Webhook Verificación (GET)').item.json.query['hub.challenge'] }}",
+        "responseBody": "={{ $json.query['hub.challenge'] }}\n",
         "options": {
           "responseCode": 200
         }
       },
-      "id": "node-respond-challenge",
+      "id": "48bc9246-1c7f-494f-99e2-d486ece888fd",
       "name": "Responder Hub Challenge (200 OK)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [680, 160]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "webhook/whatsapp",
+        "path": "whatsapp",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "node-webhook-post",
+      "id": "6ed08ca3-8210-4fbc-9871-0efc4c21ba4f",
       "name": "Meta Mensajes Entrantes (POST)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 480],
+      "position": [
+        -480,
+        320
+      ],
       "webhookId": "whatsapp-messages-post"
     },
     {
@@ -80,21 +92,27 @@
           "responseCode": 200
         }
       },
-      "id": "node-respond-meta-ok",
+      "id": "b4573337-d30c-4b74-81ec-a10044a41578",
       "name": "Responder 200 OK Inmediato",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [440, 420]
+      "position": [
+        -240,
+        272
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Extraer datos seguros del payload de WhatsApp Cloud API\nconst body = $input.first().json.body || {};\nconst entry = body.entry?.[0]?.changes?.[0]?.value;\n\n// Si no es un mensaje entrante (ej: notificación de entrega o lectura), ignorar\nif (!entry?.messages || entry.messages.length === 0) {\n  return [];\n}\n\nconst msg = entry.messages[0];\nconst contact = entry.contacts?.[0] || {};\n\n// Solo procesar mensajes de texto en este MVP\nif (msg.type !== 'text') {\n  return [{\n    json: {\n      wa_id: msg.from,\n      nombre: contact.profile?.name || 'Cliente',\n      texto: '[Mensaje no soportado: Audio o Imagen]',\n      es_texto: false,\n      mensaje_id: msg.id,\n      raw_payload: body\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    wa_id: msg.from,\n    nombre: contact.profile?.name || 'Cliente',\n    texto: msg.text.body.trim(),\n    es_texto: true,\n    mensaje_id: msg.id,\n    raw_payload: body\n  }\n}];"
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\n// 1. Manejo de YCloud (whatsapp.inbound_message)\nif (body.type === 'whatsapp.inbound_message.received' || body.whatsappInboundMessage || body.type?.startsWith('whatsapp.inbound_message')) {\n  const msg = body.whatsappInboundMessage || body;\n  const texto = msg.text?.body || msg.body || '';\n  const from = msg.from || msg.sender;\n  const nombre = msg.profile?.name || msg.customerName || 'Cliente';\n  \n  if (!texto) {\n    return []; // Ignorar si no es texto\n  }\n  \n  return [{\n    json: {\n      wa_id: from,\n      nombre: nombre,\n      texto: texto.trim(),\n      es_texto: true,\n      mensaje_id: msg.id || 'ycloud_' + Date.now(),\n      raw_payload: body\n    }\n  }];\n}\n\n// 2. Manejo de Meta estándar\nconst entry = body.entry?.[0]?.changes?.[0]?.value;\nif (entry?.messages && entry.messages.length > 0) {\n  const msg = entry.messages[0];\n  const contact = entry.contacts?.[0] || {};\n  return [{\n    json: {\n      wa_id: msg.from,\n      nombre: contact.profile?.name || 'Cliente',\n      texto: (msg.text?.body || '').trim(),\n      es_texto: msg.type === 'text',\n      mensaje_id: msg.id,\n      raw_payload: body\n    }\n  }];\n}\n\nreturn [];\n\n"
       },
-      "id": "node-extract-msg",
+      "id": "ae0dd72d-4dcd-465e-90ed-07bf2db346b0",
       "name": "Normalizar Payload WhatsApp",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 560]
+      "position": [
+        -240,
+        400
+      ]
     },
     {
       "parameters": {
@@ -104,36 +122,57 @@
           "queryReplacement": "={{ [JSON.stringify($json.raw_payload), $json.wa_id, $json.mensaje_id, $json.texto, $json.nombre] }}"
         }
       },
-      "id": "node-db-audit-debounce",
+      "id": "9a0d2bd4-2aa1-4fc3-a756-dd097e176a86",
       "name": "DB: Guardar Raw & Cola Debounce",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [680, 560]
+      "position": [
+        0,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
-        "amount": 4,
-        "unit": "seconds"
+        "amount": 4
       },
-      "id": "node-wait-debounce",
+      "id": "2b27d81c-7f87-435c-bbcd-7a02a3dceb50",
       "name": "Esperar 4 Segundos (Debounce Window)",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [920, 560]
+      "position": [
+        240,
+        400
+      ],
+      "webhookId": "c0d770e0-d06c-47bd-a93c-08302fd6cd71"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT * FROM consumir_cola_debounce($1);",
+        "query": "SELECT $1 AS wa_id, * FROM consumir_cola_debounce($1);\n",
         "options": {
           "queryReplacement": "={{ [$('Normalizar Payload WhatsApp').first().json.wa_id] }}"
         }
       },
-      "id": "node-consume-debounce",
+      "id": "d29b54ac-7203-4391-ad9e-dcac33366b72",
       "name": "DB: Consumir Mensajes Agrupados",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1160, 560]
+      "position": [
+        480,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
@@ -141,7 +180,8 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -155,26 +195,40 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "node-has-messages",
+      "id": "d1ef691e-2e67-4722-8b21-666476e4ba77",
       "name": "¿Hay Mensajes Agrupados?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1400, 560]
+      "position": [
+        720,
+        400
+      ]
     },
     {
       "parameters": {
-        "workflowId": "DS-02_AgentRouter",
+        "workflowId": {
+          "__rl": true,
+          "value": "v38A9YCXMgLpYQ48",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/v38A9YCXMgLpYQ48",
+          "cachedResultName": "DS-02_AgentRouter"
+        },
         "options": {}
       },
-      "id": "node-exec-agent",
+      "id": "a8e1e88e-2324-461e-8afa-5c325d915563",
       "name": "Ejecutar DS-02_AgentRouter",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
-      "position": [1640, 540]
+      "position": [
+        960,
+        384
+      ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Meta Webhook Verificación (GET)": {
       "main": [
@@ -269,5 +323,17 @@
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e81dead2-399e-44b7-8b8b-600daee59cf5",
+  "meta": {
+    "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
+  },
+  "nodeGroups": [],
+  "id": "XdOLmIDaYb69QAiB",
+  "tags": []
 }

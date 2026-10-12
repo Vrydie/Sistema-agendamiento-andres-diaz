@@ -1,43 +1,47 @@
 {
-  "id": "wDS03MessageOut01",
   "name": "DS-03_MessageOut",
   "nodes": [
     {
-      "parameters": {
-        "inputSource": "passthrough"
-      },
-      "id": "node-start-transport",
+      "parameters": {},
+      "id": "354ed62f-7a0c-46d9-b901-aa19b06e7d37",
       "name": "Entrada: Mensaje a Enviar",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
-      "position": [200, 300]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v21.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "url": "=https://graph.facebook.com/v21.0/1359724723893315/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAe9koDu00wBSrI4VLHm2VVWcmU5izBWynBZBbJozo7XOffigRpT14BsM8bhVzzUiUF4yaRKX2t49KxokkZAQALyH0D4PLSnzcEsgPisndNLwhh4PCGZCdyhVHDelymTuQphayZAHauPnQORqzob5LJfj517akTq6McOsMEjp6ySu3iu2hbDToDBfRMsEVFF8gZDZD"
             }
           ]
         },
         "sendBody": true,
-        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: $json.wa_id,\n  type: 'text',\n  text: {\n    preview_url: false,\n    body: $json.texto\n  }\n}) }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  JSON.stringify({\n    messaging_product: \"whatsapp\",\n    recipient_type: \"individual\",\n    to: $json.wa_id,\n    type: \"text\",\n    text: {\n      body: $json.texto\n    }\n  }) \n}}\n",
         "options": {}
       },
-      "id": "node-http-send-wa",
+      "id": "2bec2567-b465-4def-a197-195186fedd7b",
       "name": "HTTP: Enviar WhatsApp Meta",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 300]
+      "position": [
+        240,
+        0
+      ]
     },
     {
       "parameters": {
@@ -47,13 +51,23 @@
           "queryReplacement": "={{ [$('Entrada: Mensaje a Enviar').first().json.wa_id, $('Entrada: Mensaje a Enviar').first().json.texto] }}"
         }
       },
-      "id": "node-db-audit-out",
+      "id": "6d2df845-dc3c-4bd2-9610-ee2e7417c7d2",
       "name": "DB: Guardar Mensaje Saliente",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [680, 300]
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     }
   ],
+  "pinData": {},
   "connections": {
     "Entrada: Mensaje a Enviar": {
       "main": [
@@ -77,5 +91,17 @@
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "62cd0e5d-a690-4a63-a308-a4c355bdda8c",
+  "meta": {
+    "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
+  },
+  "nodeGroups": [],
+  "id": "XQb52Xvvo5JBu2eZ",
+  "tags": []
 }

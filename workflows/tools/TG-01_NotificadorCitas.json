@@ -1,51 +1,45 @@
 {
-  "id": "wTG01NotifCita01",
   "name": "TG-01_NotificadorCitas",
   "nodes": [
     {
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "node-trigger-tg01",
+      "id": "8f6029c8-1694-418b-a7c3-33751fd75673",
       "name": "Trigger: Notificar Cita Confirmada",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [200, 300]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
-        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID || '5926139023' }}",
+        "chatId": "=5926139023",
         "text": "=🔔 *¡NUEVA CITA CONFIRMADA EN EL SALÓN!* 💇✨\n\n👤 *Cliente:* {{ $json.nombre_cliente }}\n💇 *Servicio:* {{ $json.nombre_servicio }}\n💰 *Valor:* ${{ Number($json.precio || 45000).toLocaleString('es-CO') }} COP\n⏰ *Cita:* {{ $json.fecha_cita_formateada }}\n📍 *Sede:* Cra 83 # 09, Bogotá\n\n📱 *WhatsApp:* +{{ $json.wa_id }}\n👉 [Toca aquí para chatear con el cliente](https://wa.me/{{ $json.wa_id }})",
         "additionalFields": {
-          "parse_mode": "Markdown",
-          "reply_markup": "inline_keyboard",
-          "inline_keyboard": {
-            "rows": [
-              {
-                "row": [
-                  {
-                    "text": "💬 Abrir WhatsApp del Cliente",
-                    "url": "=https://wa.me/{{ $json.wa_id }}"
-                  }
-                ]
-              }
-            ]
-          }
+          "parse_mode": "Markdown"
         }
       },
-      "id": "node-tg-send-alert",
+      "id": "fde15f49-3f34-451e-beba-b10c5620ee3b",
       "name": "Telegram: Enviar Alerta a Andrés",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [460, 300],
+      "position": [
+        272,
+        0
+      ],
+      "webhookId": "8106a221-dc4e-4e1f-b5d6-3fefb279d143",
       "credentials": {
         "telegramApi": {
-          "id": "cred-telegram-andres",
-          "name": "Telegram Bot Andrés Peluquería"
+          "id": "ip1uLbMWnxO9XrUT",
+          "name": "Telegram account"
         }
       }
     }
   ],
+  "pinData": {},
   "connections": {
     "Trigger: Notificar Cita Confirmada": {
       "main": [
@@ -58,5 +52,17 @@
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ecb38216-327d-4ff9-9930-259c8ead7d71",
+  "meta": {
+    "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
+  },
+  "nodeGroups": [],
+  "id": "p7UTle9RJtrlvnYr",
+  "tags": []
 }

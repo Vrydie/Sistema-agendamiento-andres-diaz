@@ -1,19 +1,6 @@
 {
-  "id": "wT02CrearCita01",
   "name": "T-02_CrearCita",
   "nodes": [
-    {
-      "parameters": {
-        "inputSource": "passthrough",
-        "inputDataMode": "defineWithExample",
-        "jsonExample": "{\n  \"nombre_cliente\": \"Carlos Gómez\",\n  \"servicio\": \"corte\",\n  \"fecha_hora\": \"2026-10-12T14:00:00\",\n  \"wa_id\": \"573108484221\"\n}"
-      },
-      "id": "node-trigger-t02",
-      "name": "Tool Trigger: Crear Cita",
-      "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1.1,
-      "position": [200, 300]
-    },
     {
       "parameters": {
         "operation": "executeQuery",
@@ -22,21 +9,33 @@
           "queryReplacement": "={{ [$json.servicio || 'corte_styling'] }}"
         }
       },
-      "id": "node-db-find-service",
+      "id": "c31db38c-8ab0-42fe-8567-c4af7520dae1",
       "name": "DB: Buscar Servicio",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [440, 300]
+      "position": [
+        -896,
+        -288
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Tool Trigger: Crear Cita').first().json;\nconst servicio = $input.first().json;\n\nfunction parsearFechaColombia(raw) {\n  const ahora = new Date();\n  const bogotaOffset = -5 * 60;\n  const nowBogota = new Date(ahora.getTime() + (ahora.getTimezoneOffset() + bogotaOffset) * 60000);\n  \n  if (!raw || typeof raw !== 'string') return new Date();\n\n  let str = raw.trim();\n\n  // 1. Si viene en formato ISO (YYYY-MM-DDTHH:mm...)\n  const isoMatch = str.match(/^(\\d{4})-(\\d{2})-(\\d{2})[T ](\\d{1,2}):(\\d{2})(?::(\\d{2}))?(.*)$/);\n  if (isoMatch) {\n    let [_, y, m, d, hh, mm, ss, tz] = isoMatch;\n    let year = parseInt(y);\n    if (year < 2026) year = 2026;\n    if (!tz || tz.trim() === '') tz = '-05:00';\n    return new Date(year + '-' + m + '-' + d + 'T' + hh.padStart(2, '0') + ':' + mm + ':00' + tz);\n  }\n\n  // 2. Si viene en lenguaje natural ej: 'mañana a las 3', 'mañana a las 3:00 PM'\n  let targetDate = new Date(nowBogota);\n  if (/mañana/i.test(str)) {\n    targetDate.setDate(targetDate.getDate() + 1);\n  }\n\n  let hora = 15; // default 3:00 PM si no se especifica\n  let minutos = 0;\n\n  const timeMatch = str.match(/(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm|a\\.m\\.|p\\.m\\.)?/i);\n  if (timeMatch) {\n    let h = parseInt(timeMatch[1]);\n    let m = timeMatch[2] ? parseInt(timeMatch[2]) : 0;\n    let mer = timeMatch[3] ? timeMatch[3].toLowerCase().replace(/\\./g, '') : '';\n\n    if (mer === 'pm' && h < 12) h += 12;\n    if (mer === 'am' && h === 12) h = 0;\n    if (!mer && h >= 1 && h <= 7) h += 12; // En salon de belleza, 'las 3' son las 15:00\n\n    hora = h;\n    minutos = m;\n  }\n\n  const y = 2026;\n  const m = String(targetDate.getMonth() + 1).padStart(2, '0');\n  const d = String(targetDate.getDate()).padStart(2, '0');\n  const hh = String(hora).padStart(2, '0');\n  const mm = String(minutos).padStart(2, '0');\n\n  return new Date(y + '-' + m + '-' + d + 'T' + hh + ':' + mm + ':00-05:00');\n}\n\nconst fechaInicio = parsearFechaColombia(input.fecha_hora);\nconst duracionMs = (servicio.duracion_minutos || 60) * 60 * 1000;\nconst fechaFin = new Date(fechaInicio.getTime() + duracionMs);\n\nreturn [{\n  json: {\n    wa_id: input.wa_id,\n    nombre_cliente: input.nombre_cliente || 'Cliente',\n    servicio_id: servicio.id,\n    nombre_servicio: servicio.nombre,\n    precio: servicio.precio_base_cop,\n    fecha_inicio: fechaInicio.toISOString(),\n    fecha_fin: fechaFin.toISOString(),\n    fecha_cita_formateada: fechaInicio.toLocaleString('es-CO', { timeZone: 'America/Bogota' })\n  }\n}];"
+        "jsCode": "const input = $('Tool Trigger: Crear Cita').first().json;\nconst servicio = $input.first().json;\n\nfunction parsearFechaColombia(raw) {\n  const ahora = new Date();\n  const bogotaOffset = -5 * 60;\n  const nowBogota = new Date(ahora.getTime() + (ahora.getTimezoneOffset() + bogotaOffset) * 60000);\n  \n  if (!raw || typeof raw !== 'string') return new Date();\n\n  let str = raw.trim();\n\n  // 1. Si viene en formato ISO (YYYY-MM-DDTHH:mm...)\n  const isoMatch = str.match(/^(\\d{4})-(\\d{2})-(\\d{2})[T ](\\d{1,2}):(\\d{2})(?::(\\d{2}))?(.*)$/);\n  if (isoMatch) {\n    let [_, y, m, d, hh, mm, ss, tz] = isoMatch;\n    let year = parseInt(y);\n    if (year < 2026) year = 2026;\n    if (!tz || tz.trim() === '') tz = '-05:00';\n    return new Date(year + '-' + m + '-' + d + 'T' + hh.padStart(2, '0') + ':' + mm + ':00' + tz);\n  }\n\n  // 2. Si viene en lenguaje natural ej: 'mañana a las 3', 'mañana a las 3:00 PM'\n  let targetDate = new Date(nowBogota);\n  if (/mañana/i.test(str)) {\n    targetDate.setDate(targetDate.getDate() + 1);\n  }\n\n  let hora = 15; // default 3:00 PM si no se especifica\n  let minutos = 0;\n\n  const timeMatch = str.match(/(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm|a\\.m\\.|p\\.m\\.)?/i);\n  if (timeMatch) {\n    let h = parseInt(timeMatch[1]);\n    let m = timeMatch[2] ? parseInt(timeMatch[2]) : 0;\n    let mer = timeMatch[3] ? timeMatch[3].toLowerCase().replace(/\\./g, '') : '';\n\n    if (mer === 'pm' && h < 12) h += 12;\n    if (mer === 'am' && h === 12) h = 0;\n    if (!mer && h >= 1 && h <= 7) h += 12; // En salón de belleza, 'las 3' son las 15:00\n\n    hora = h;\n    minutos = m;\n  }\n\n  const y = 2026;\n  const m = String(targetDate.getMonth() + 1).padStart(2, '0');\n  const d = String(targetDate.getDate()).padStart(2, '0');\n  const hh = String(hora).padStart(2, '0');\n  const mm = String(minutos).padStart(2, '0');\n\n  return new Date(y + '-' + m + '-' + d + 'T' + hh + ':' + mm + ':00-05:00');\n}\n\nconst fechaInicio = parsearFechaColombia(input.fecha_hora);\nconst duracionMs = (servicio.duracion_minutos || 60) * 60 * 1000;\nconst fechaFin = new Date(fechaInicio.getTime() + duracionMs);\n\nreturn [{\n  json: {\n    wa_id: (input.wa_id || '').trim(),\n    nombre_cliente: (input.nombre_cliente || 'Cliente').trim(),\n    servicio_id: servicio.id,\n    nombre_servicio: servicio.nombre,\n    precio: servicio.precio_base_cop,\n    fecha_inicio: fechaInicio.toISOString(),\n    fecha_fin: fechaFin.toISOString(),\n    fecha_cita_formateada: fechaInicio.toLocaleString('es-CO', { timeZone: 'America/Bogota' })\n  }\n}];\n\n"
       },
-      "id": "node-calc-dates",
+      "id": "614093c3-ce1a-47bd-82ac-182fdce587da",
       "name": "Calcular Horas y Duración",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        -656,
+        -288
+      ]
     },
     {
       "parameters": {
@@ -46,11 +45,20 @@
           "queryReplacement": "={{ [$json.fecha_inicio, $json.fecha_fin] }}"
         }
       },
-      "id": "node-check-overlap",
+      "id": "0ad1b354-3f66-4ef8-8be7-a9f162b1affb",
       "name": "DB: Verificar Anti-Solapamiento",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [920, 300]
+      "position": [
+        -416,
+        -288
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
@@ -58,7 +66,8 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -72,117 +81,225 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "node-is-free",
+      "id": "3561e8a7-179e-495c-83c3-b91d4baddb2c",
       "name": "¿Horario Libre?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1160, 300]
+      "position": [
+        -176,
+        -288
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO citas (cliente_id, servicio_id, fecha_inicio, fecha_fin, estado, notas)\nSELECT cl.id, $2::uuid, $3::timestamptz, $4::timestamptz, 'confirmada', 'Agendado por Asistente IA WhatsApp'\nFROM clientes cl\nWHERE replace(cl.wa_id, '+', '') = replace($1, '+', '')\nLIMIT 1\nRETURNING id, fecha_inicio, fecha_fin;",
+        "query": "INSERT INTO citas (cliente_id, servicio_id, fecha_inicio, fecha_fin, estado, notas)\nSELECT cl.id, $2::uuid, $3::timestamptz, $4::timestamptz, 'confirmada', 'Agendado por Asistente IA WhatsApp'\nFROM clientes cl\nWHERE regexp_replace(cl.wa_id, '\\D', '', 'g') = regexp_replace($1, '\\D', '', 'g')\nLIMIT 1\nRETURNING id, fecha_inicio, fecha_fin;",
         "options": {
           "queryReplacement": "={{ [$('Calcular Horas y Duración').first().json.wa_id, $('Calcular Horas y Duración').first().json.servicio_id, $('Calcular Horas y Duración').first().json.fecha_inicio, $('Calcular Horas y Duración').first().json.fecha_fin] }}"
         }
       },
-      "id": "node-db-insert-cita",
+      "id": "734be5f5-efe0-438c-848a-7d432bd74b23",
       "name": "DB: Guardar Cita Confirmada",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1400, 240]
+      "position": [
+        64,
+        -352
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const cita = $input.first().json;\nconst info = $('Calcular Horas y Duración').first().json;\n\nreturn [{\n  json: {\n    exito: true,\n    cita_id: cita.id,\n    mensaje: `¡Listo! Tu cita para ${info.nombre_servicio} ha quedado confirmada para el ${new Date(cita.fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}. Te esperamos en Cra 83 # 09.`\n  }\n}];"
+      },
+      "id": "6f1d72df-d5b5-4a99-9a9f-ef85aceefc6e",
+      "name": "Respuesta Éxito Cita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        -352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    exito: false,\n    mensaje: 'Lo sentimos, ese espacio exacto acaba de ocuparse en la agenda. Por favor indícale al cliente otro horario cercano disponible.'\n  }\n}];"
+      },
+      "id": "6ea69822-2c9e-4a39-964e-f3b8581b7cbb",
+      "name": "Respuesta Conflicto Horario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        -176
+      ]
     },
     {
       "parameters": {
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "AndresPDB",
+          "value": "1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk",
           "mode": "list",
-          "cachedResultName": "AndresPDB"
+          "cachedResultName": "AndresPDB",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
-          "value": "Hoja 1",
+          "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Hoja 1"
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit#gid=0"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Fecha Registro": "={{ $now.setZone('America/Bogota').toFormat('yyyy-MM-dd HH:mm') }}",
+            "Fecha Registro": "={{ $now.toISO() }}",
             "Nombre Cliente": "={{ $('Calcular Horas y Duración').first().json.nombre_cliente }}",
             "WhatsApp": "={{ $('Calcular Horas y Duración').first().json.wa_id }}",
             "Servicio": "={{ $('Calcular Horas y Duración').first().json.nombre_servicio }}",
-            "Fecha Cita": "={{ $('Calcular Horas y Duración').first().json.fecha_cita_formateada }}",
+            "Fecha Cita": "={{ new Date($('Calcular Horas y Duración').first().json.fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) }}\n",
             "Precio COP": "={{ $('Calcular Horas y Duración').first().json.precio }}",
             "Estado": "Confirmada"
-          }
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha Registro",
+              "displayName": "Fecha Registro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nombre Cliente",
+              "displayName": "Nombre Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "WhatsApp",
+              "displayName": "WhatsApp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Servicio",
+              "displayName": "Servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha Cita",
+              "displayName": "Fecha Cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Precio COP",
+              "displayName": "Precio COP",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
-      "id": "node-sheets-append",
-      "name": "Append row in sheet",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
-      "position": [1640, 240]
+      "typeVersion": 4.7,
+      "position": [
+        288,
+        -352
+      ],
+      "id": "f47aab85-c1c8-4894-94dd-f89c904afe24",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "nO3OdsbG8TNMXxZN",
+          "name": "Google Sheets account"
+        }
+      }
     },
     {
       "parameters": {
-        "workflowId": "TG-01_NotificadorCitas",
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1088,
+        -288
+      ],
+      "id": "43ee14af-5491-46e7-8910-c67087ffec1e",
+      "name": "Tool Trigger: Crear Cita"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "p7UTle9RJtrlvnYr",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/p7UTle9RJtrlvnYr",
+          "cachedResultName": "TG-01_NotificadorCitas"
+        },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {
-            "nombre_cliente": "={{ $('Calcular Horas y Duración').first().json.nombre_cliente }}",
-            "nombre_servicio": "={{ $('Calcular Horas y Duración').first().json.nombre_servicio }}",
-            "precio": "={{ $('Calcular Horas y Duración').first().json.precio }}",
-            "fecha_cita_formateada": "={{ $('Calcular Horas y Duración').first().json.fecha_cita_formateada }}",
-            "wa_id": "={{ $('Calcular Horas y Duración').first().json.wa_id }}"
-          }
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         },
         "options": {}
       },
-      "id": "node-call-tg-notif",
-      "name": "Ejecutar TG-01_NotificadorCitas",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [1880, 240]
-    },
-    {
-      "parameters": {
-        "jsCode": "const info = $('Calcular Horas y Duración').first().json;\n\nreturn [{\n  json: {\n    exito: true,\n    mensaje: `¡Listo! Tu cita para ${info.nombre_servicio} ha quedado confirmada para el ${info.fecha_cita_formateada}. Te esperamos en Cra 83 # 09.`\n  }\n}];"
-      },
-      "id": "node-success-response",
-      "name": "Respuesta Éxito Cita",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2120, 240]
-    },
-    {
-      "parameters": {
-        "jsCode": "return [{\n  json: {\n    exito: false,\n    mensaje: 'Lo sentimos, ese espacio exacto acaba de ocuparse en la agenda. Por favor indícale al cliente otro horario cercano disponible.'\n  }\n}];"
-      },
-      "id": "node-conflict-response",
-      "name": "Respuesta Conflicto Horario",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1400, 420]
+      "typeVersion": 1.4,
+      "position": [
+        512,
+        -352
+      ],
+      "id": "6cab4a56-bd1f-4cb9-af56-1264286cb7f5",
+      "name": "Call 'TG-01_NotificadorCitas'"
     }
   ],
+  "pinData": {},
   "connections": {
-    "Tool Trigger: Crear Cita": {
-      "main": [
-        [
-          {
-            "node": "DB: Buscar Servicio",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "DB: Buscar Servicio": {
       "main": [
         [
@@ -249,14 +366,25 @@
       "main": [
         [
           {
-            "node": "Ejecutar TG-01_NotificadorCitas",
+            "node": "Call 'TG-01_NotificadorCitas'",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ejecutar TG-01_NotificadorCitas": {
+    "Tool Trigger: Crear Cita": {
+      "main": [
+        [
+          {
+            "node": "DB: Buscar Servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'TG-01_NotificadorCitas'": {
       "main": [
         [
           {
@@ -267,5 +395,18 @@
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0264ca48-957a-4a10-902c-cbdfed248c76",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
+  },
+  "nodeGroups": [],
+  "id": "jwl5jLyOA4BOCu5E",
+  "tags": []
 }

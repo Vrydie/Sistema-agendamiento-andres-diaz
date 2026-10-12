@@ -1,14 +1,16 @@
 {
-  "id": "wDS00ErrorHandl01",
   "name": "DS-00_ErrorHandler",
   "nodes": [
     {
       "parameters": {},
-      "id": "node-error-trigger",
+      "id": "5f8cb4bb-51bc-4d22-9934-5f01bfa36f4a",
       "name": "Error Trigger Global",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
-      "position": [200, 300]
+      "position": [
+        -160,
+        96
+      ]
     },
     {
       "parameters": {
@@ -18,13 +20,23 @@
           "queryReplacement": "={{ [JSON.stringify($json.execution), $json.execution.error.message] }}"
         }
       },
-      "id": "node-db-log-error",
+      "id": "d349806c-c003-4780-aa37-15df3b54ed68",
       "name": "DB: Registrar Error en Auditoría",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [440, 300]
+      "position": [
+        80,
+        96
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     }
   ],
+  "pinData": {},
   "connections": {
     "Error Trigger Global": {
       "main": [
@@ -37,5 +49,17 @@
         ]
       ]
     }
-  }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2d17c2f3-ab73-403e-857a-5c75d2f7f0a9",
+  "meta": {
+    "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
+  },
+  "nodeGroups": [],
+  "id": "wFIP7TuFrbAzjNp9",
+  "tags": []
 }

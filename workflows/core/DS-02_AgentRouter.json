@@ -1,16 +1,16 @@
 {
-  "id": "wDS02AgentRout01",
   "name": "DS-02_AgentRouter",
   "nodes": [
     {
-      "parameters": {
-        "inputSource": "passthrough"
-      },
-      "id": "node-agent-trigger",
+      "parameters": {},
+      "id": "b75b394b-b4ba-4e8b-bbe4-f19d947810d2",
       "name": "Trigger: Mensaje Consolidado",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
-      "position": [200, 300]
+      "position": [
+        -720,
+        64
+      ]
     },
     {
       "parameters": {
@@ -20,11 +20,20 @@
           "queryReplacement": "={{ [$json.wa_id] }}"
         }
       },
-      "id": "node-db-check-state",
+      "id": "547fe3e3-fad0-4dac-81e6-0b69605cbfef",
       "name": "DB: Consultar Estado Conversación",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [440, 300]
+      "position": [
+        -480,
+        64
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
@@ -32,7 +41,8 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -46,89 +56,91 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "node-is-active",
+      "id": "52dd599f-79ac-4e2f-9401-20ac9266af9c",
       "name": "¿Bot Activo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        -240,
+        64
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO mensajes (conversacion_id, remitente, texto)\nVALUES ($1::uuid, 'cliente', $2);\n\nSELECT COALESCE(\n  string_agg(\n    (CASE WHEN remitente = 'cliente' THEN 'Cliente: ' ELSE 'Valentina: ' END) || COALESCE(texto, ''),\n    E'\\n'\n    ORDER BY creado_en ASC\n  ),\n  'Sin historial previo'\n) AS historial_chat\nFROM (\n  SELECT remitente, texto, creado_en\n  FROM mensajes\n  WHERE conversacion_id = $1::uuid\n  ORDER BY creado_en DESC\n  LIMIT 8\n) sub;",
+        "query": "INSERT INTO mensajes (conversacion_id, remitente, texto)\nVALUES ($1::uuid, 'cliente', $2);\n\nSELECT COALESCE(\n  string_agg(\n    (CASE WHEN remitente = 'cliente' THEN 'Cliente: ' ELSE 'Valentina: ' END) || COALESCE(texto, ''),\n    E'\\n'\n    ORDER BY creado_en ASC\n  ),\n  'Sin historial previo'\n) AS historial_chat\nFROM (\n  SELECT remitente, texto, creado_en\n  FROM mensajes\n  WHERE conversacion_id = $1::uuid\n  ORDER BY creado_en DESC\n  LIMIT 8\n) sub;\n",
         "options": {
           "queryReplacement": "={{ [$json.conversacion_id, $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto] }}"
         }
       },
-      "id": "node-db-get-memory",
+      "id": "f353847f-dafb-406d-a34a-30be7aea8433",
       "name": "DB: Cargar Últimos 6 Mensajes",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [920, 240],
-      "alwaysOutputData": true
+      "position": [
+        0,
+        0
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "=Fecha y hora actual en Bogotá: {{ $now.setZone('America/Bogota').toFormat('yyyy-MM-dd HH:mm') }}\nWhatsApp del cliente: {{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}\n\nHISTORIAL RECIENTE DEL CHAT:\n{{ $('DB: Cargar Últimos 6 Mensajes').first().json.historial_chat }}\n\nNUEVO MENSAJE ENTRANTE DEL CLIENTE:\n{{ $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto }}",
         "options": {
-          "systemMessage": "Eres Valentina, recepcionista y asesora de Andrés Díaz - Tendencia en Peluquería (Cra 83 # 09, Bogotá).\nAtiendes con calidez, elegancia y un tono 100% natural humano.\n\nCATÁLOGO OFICIAL:\n- Corte de Tendencia & Styling: $45.000 COP (45 a 60 min). (Incluye si el cliente dice: 'peluquearme', 'motilarme', 'corte normal', 'corte de hombre', etc.)\n- Balayage Signature: Desde $180.000 COP (3 a 4 horas).\n- Terapia Nutritiva & Reparación: $70.000 COP (60 min).\n- Mantenimiento Gloss: $65.000 COP.\n\nHORARIO:\n- Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n\nREGLAS DE ORO CONVERSACIONALES (PROHIBIDO PARECER ROBOT):\n1. PROHIBIDO REPETIR SALUDOS: Di '¡Hola!' ÚNICAMENTE si este es el primerísimo mensaje de toda la conversación. Si en el historial ya hablaron, ESTÁ TOTALMENTE PROHIBIDO decir '¡Hola!', 'Hola Samuel' ni 'Hola de nuevo'. Responde directo al grano: '¡Perfecto!', 'Con mucho gusto', 'Listo', 'Excelente'.\n2. MEMORIA DE SERVICIO Y HORARIO: NUNCA vuelvas a preguntar un dato que ya se discutió. Si el cliente ya dijo 'quiero peluquearme' o 'corte', asume inmediatamente 'Corte de Tendencia & Styling ($45.000)'. Si propuso 'mañana a las 3', confirma ese horario sin volver a pedir servicios.\n3. RESPUESTA SOLO CON NOMBRE (CASO FRECUENTE Y CRÍTICO): Cuando tú hayas preguntado el nombre para apartar el cupo (ej: '¿Me confirmas tu nombre completo?'), el cliente casi siempre responderá ÚNICAMENTE su nombre y apellido (ej: 'Samuel vargas', 'Carlos Gómez').\nENTIÉNDELO DE INMEDIATO: Ése es su nombre completo.\nEn ese instante ya tienes los 3 datos requeridos:\n- Nombre: El nombre recibido (ej: Samuel Vargas).\n- Servicio: El acordado previamente (ej: Corte de Tendencia & Styling).\n- Fecha/Hora: La acordada previamente (ej: Mañana a las 3:00 PM / 15:00).\n¡NO hagas más preguntas ni vuelvas a saludar! LLAMA INMEDIATAMENTE a la herramienta \"agendar_cita\".\n4. AGENDAMIENTO OBLIGATORIO: Tan pronto tengas Nombre, Servicio y Fecha/Hora, TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"agendar_cita\". No confirmes la cita antes de que la herramienta devuelva éxito.\n5. Mensajes concisos: Máximo 2 a 3 oraciones por mensaje."
+          "systemMessage": "Eres Valentina, recepcionista y asesora de Andrés Díaz - Tendencia en Peluquería (Cra 83 # 09, Bogotá).\nAtiendes con calidez, elegancia y un tono 100% natural humano.\n\nCATÁLOGO OFICIAL:\n- Corte de Tendencia & Styling: $45.000 COP (45 a 60 min). (Aplica si dicen: 'peluquearme', 'motilarme', 'corte normal', 'corte de hombre', etc.)\n- Balayage Signature: Desde $180.000 COP (3 a 4 horas).\n- Terapia Nutritiva & Reparación: $70.000 COP (60 min).\n- Mantenimiento Gloss: $65.000 COP.\n\nHORARIO:\n- Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n\nREGLAS DE ORO CONVERSACIONALES (PROHIBIDO PARECER ROBOT):\n1. PROHIBIDO REPETIR SALUDOS: Di '¡Hola!' ÚNICAMENTE si este es el primerísimo mensaje de toda la conversación. Si en el historial ya hablaron, ESTÁ TOTALMENTE PROHIBIDO decir '¡Hola!', 'Hola Samuel' ni 'Hola de nuevo'. Responde directo al grano.\n2. MEMORIA DE CONTEXTO: NUNCA vuelvas a preguntar un dato que ya se discutió. Si el cliente ya dijo 'quiero peluquearme' o 'corte', asume inmediatamente 'Corte de Tendencia & Styling ($45.000)'. Si propuso 'mañana a las 3', confirma ese horario sin volver a pedir qué servicio quiere.\n3. RESPUESTA SOLO CON NOMBRE (CASO FRECUENTE Y CRÍTICO): Cuando tú hayas preguntado el nombre para apartar el cupo (ej: '¿Me confirmas tu nombre completo?'), el cliente responderá ÚNICAMENTE su nombre y apellido (ej: 'Samuel vargas', 'Carlos Gómez').\nENTIÉNDELO DE INMEDIATO: Ése es su nombre completo.\nEn ese instante ya tienes los 3 datos requeridos:\n- Nombre: El nombre recibido (ej: Samuel Vargas).\n- Servicio: El acordado previamente (ej: Corte de Tendencia & Styling).\n- Fecha/Hora: La acordada previamente (ej: Mañana a las 3:00 PM).\n¡NO hagas más preguntas ni vuelvas a saludar! LLAMA INMEDIATAMENTE a la herramienta \"agendar_cita\".\n4. AGENDAMIENTO OBLIGATORIO: Tan pronto tengas Nombre, Servicio y Fecha/Hora, TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"agendar_cita\". No confirmes la cita antes de que la herramienta devuelva éxito.\n5. Mensajes concisos: Máximo 2 a 3 oraciones por mensaje.\n"
         }
       },
-      "id": "node-ai-agent",
+      "id": "94c421de-2831-4e9d-b721-5b7900b5c121",
       "name": "AI Agent: Valentina (Andrés Peluquería)",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [1160, 240]
+      "position": [
+        240,
+        0
+      ]
     },
     {
       "parameters": {
-        "model": "gpt-4o-mini",
-        "options": {
-          "temperature": 0.2
-        }
+        "workflowId": {
+          "__rl": true,
+          "value": "XQb52Xvvo5JBu2eZ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/XQb52Xvvo5JBu2eZ",
+          "cachedResultName": "DS-03_MessageOut"
+        },
+        "options": {}
       },
-      "id": "node-llm-model",
-      "name": "DeepSeek Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.2,
-      "position": [1160, 440]
-    },
-    {
-      "parameters": {
-        "name": "agendar_cita",
-        "description": "Llama a esta herramienta cuando el cliente confirme su nombre, servicio y fecha/hora para registrar su cita en la agenda, base de datos y Google Sheets.",
-        "workflowId": "T-02_CrearCita",
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "nombre_cliente": "={{ $fromAI('nombre_cliente', 'Nombre completo del cliente', 'string') }}",
-            "servicio": "={{ $fromAI('servicio', 'Servicio solicitado ej: corte, balayage', 'string') }}",
-            "fecha_hora": "={{ $fromAI('fecha_hora', 'Fecha y hora exacta solicitada por el cliente en formato ISO YYYY-MM-DDTHH:mm:ss. Año actual 2026.', 'string') }}",
-            "wa_id": "={{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}"
-          }
-        }
-      },
-      "id": "node-tool-crear-cita",
-      "name": "agendar_cita",
-      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "id": "7320223e-7959-4e5b-bf88-8d4f94c28bc9",
+      "name": "Ejecutar DS-03_MessageOut",
+      "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
-      "position": [1360, 440]
+      "position": [
+        752,
+        0
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "assign-wa-id",
+              "id": "db847ba9-eabb-4cfb-b80b-0345f649c5fa",
               "name": "wa_id",
               "value": "={{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}",
               "type": "string"
             },
             {
-              "id": "assign-texto",
+              "id": "d536051a-0431-43bc-a7b1-0ea42030188c",
               "name": "texto",
               "value": "={{ $json.output }}",
               "type": "string"
@@ -137,31 +149,110 @@
         },
         "options": {}
       },
-      "id": "node-set-wa-id",
-      "name": "wa_id",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1420, 240]
+      "typeVersion": 3.5,
+      "position": [
+        608,
+        0
+      ],
+      "id": "df8103a1-ec75-4ae4-9869-0c5c275a5037",
+      "name": "wa_id"
     },
     {
       "parameters": {
-        "workflowId": "DS-03_MessageOut",
+        "description": "Llama a esta herramienta cuando el cliente confirme su nombre, servicio y fecha/hora para registrar su cita en la agenda y Google Sheets.",
+        "workflowId": {
+          "__rl": true,
+          "value": "jwl5jLyOA4BOCu5E",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/jwl5jLyOA4BOCu5E",
+          "cachedResultName": "T-02_CrearCita"
+        },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "wa_id": "={{ $json.wa_id }}",
-            "texto": "={{ $json.texto }}"
-          }
-        },
+            "wa_id": "={{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}",
+            "nombre_cliente": "={{ $fromAI('nombre_cliente', 'Nombre completo del cliente', 'string') }}",
+            "servicio": "={{ $fromAI('servicio', 'Servicio solicitado ej: corte, balayage', 'string') }}",
+            "fecha_hora": "={{ $fromAI('fecha_hora', 'Fecha y hora exacta solicitada por el cliente en formato YYYY-MM-DDTHH:mm:ss. Año actual 2026.', 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nombre_cliente",
+              "displayName": "nombre_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "servicio",
+              "displayName": "servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "fecha_hora",
+              "displayName": "fecha_hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "wa_id",
+              "displayName": "wa_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        208
+      ],
+      "id": "6b34356e-d7ce-480a-af5a-44706dd2c1e1",
+      "name": "agendar_cita"
+    },
+    {
+      "parameters": {
         "options": {}
       },
-      "id": "node-call-message-out",
-      "name": "Ejecutar DS-03_MessageOut",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [1640, 240]
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        112,
+        208
+      ],
+      "id": "004c7061-2da8-40d2-9d81-fac84ea6db8a",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "vjYaJN1hpdJ0s778",
+          "name": "DeepSeek account"
+        }
+      }
     }
   ],
+  "pinData": {},
   "connections": {
     "Trigger: Mensaje Consolidado": {
       "main": [
@@ -207,28 +298,6 @@
         ]
       ]
     },
-    "DeepSeek Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent: Valentina (Andrés Peluquería)",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "agendar_cita": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent: Valentina (Andrés Peluquería)",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "AI Agent: Valentina (Andrés Peluquería)": {
       "main": [
         [
@@ -250,6 +319,41 @@
           }
         ]
       ]
+    },
+    "agendar_cita": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Valentina (Andrés Peluquería)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Valentina (Andrés Peluquería)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7b248635-1f07-4cc7-a6a7-494aaa3fcd05",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
+  },
+  "nodeGroups": [],
+  "id": "v38A9YCXMgLpYQ48",
+  "tags": []
 }
