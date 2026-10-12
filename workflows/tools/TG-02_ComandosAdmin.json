@@ -33,7 +33,7 @@
             {
               "id": "check-is-admin",
               "leftValue": "={{ $json.message.chat.id.toString() }}",
-              "rightValue": "={{ ($env.TELEGRAM_ADMIN_CHAT_ID || '').toString() }}",
+              "rightValue": "={{ ($env.TELEGRAM_ADMIN_CHAT_ID || '5926139023').toString() }}",
               "operator": {
                 "type": "string",
                 "operation": "equals"
