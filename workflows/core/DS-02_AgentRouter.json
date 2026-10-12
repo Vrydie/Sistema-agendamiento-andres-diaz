@@ -66,14 +66,15 @@
       "name": "DB: Cargar Últimos 6 Mensajes",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [920, 240]
+      "position": [920, 240],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Fecha y hora actual: {{ $now.setZone('America/Bogota').toFormat('yyyy-MM-dd HH:mm') }}\nWhatsApp del cliente: {{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}\nMensaje del cliente: {{ $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto }}",
+        "text": "=Fecha y hora actual en Bogotá: {{ $now.setZone('America/Bogota').toFormat('yyyy-MM-dd HH:mm') }}\nWhatsApp del cliente: {{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}\n\nHISTORIAL RECIENTE DEL CHAT:\n{{ $('DB: Cargar Últimos 6 Mensajes').all().map(m => (m.json.remitente === 'cliente' ? 'Cliente' : 'Valentina') + ': ' + (m.json.texto || '')).reverse().join('\\n') }}\n\nNUEVO MENSAJE ENTRANTE DEL CLIENTE:\n{{ $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto }}",
         "options": {
-          "systemMessage": "Eres Valentina, la recepcionista y asesora de imagen de Andrés Díaz - Tendencia en Peluquería (Cra 83 # 09, Bogotá/Colombia).\n\nTu misión es atender con calidez, elegancia y profesionalismo.\nCATÁLOGO OFICIAL DE SERVICIOS:\n- Balayage Signature: Desde $180.000 COP (duración aprox. 3 a 4 horas).\n- Corte de Tendencia & Styling: $45.000 COP (45 a 60 min).\n- Terapia Nutritiva & Reparación: $70.000 COP (60 min).\n- Mantenimiento Gloss: $65.000 COP.\n\nHORARIOS DE ATENCIÓN:\n- Lunes a Sábado de 9:00 AM a 8:00 PM.\n- Domingos y festivos: Cerrado.\n\nREGLAS DE CONVERSACIÓN Y NEGOCIO:\n1. Sé concisa (máximo 2 a 3 oraciones por mensaje), amable y cercana.\n2. Si el cliente pregunta por disponibilidad o pide cita, verifica que esté dentro del horario (Lun-Sáb 9:00 AM a 8:00 PM) y que no sea una fecha pasada. Proponle con seguridad 2 opciones de horario.\n3. Para formalizar la reserva, pídele amablemente su nombre completo si aún no lo tienes.\n4. REGLA CRÍTICA OBLIGATORIA DE RESERVA:\nCuando el cliente confirme su cita con nombre, servicio y fecha/hora, TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"agendar_cita\". ESTÁ TOTALMENTE PROHIBIDO confirmar la cita sin haber llamado a la herramienta. Solo cuando la herramienta te devuelva éxito, dale la bienvenida y confírmale la cita con calidez indicando la dirección Cra 83 # 09.\n5. Si el cliente solicita hablar con Andrés o una persona, dile amablemente que dejas una nota para que Andrés se comunique en cuanto se desocupe.\n6. No inventes precios ni servicios que no estén en el catálogo."
+          "systemMessage": "Eres Valentina, la recepcionista y asesora de imagen de Andrés Díaz - Tendencia en Peluquería (Cra 83 # 09, Bogotá/Colombia).\nTu misión es atender con calidez, elegancia, profesionalismo y fluidez natural humana.\n\nCATÁLOGO OFICIAL DE SERVICIOS:\n- Balayage Signature: Desde $180.000 COP (duración aprox. 3 a 4 horas).\n- Corte de Tendencia & Styling: $45.000 COP (45 a 60 min).\n- Terapia Nutritiva & Reparación: $70.000 COP (60 min).\n- Mantenimiento Gloss: $65.000 COP.\n\nHORARIOS DE ATENCIÓN:\n- Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n\nREGLAS DE CONVERSACIÓN NATURAL HUMANA (¡MUY IMPORTANTES!):\n1. PROHIBIDO REPETIR SALUDOS: Di '¡Hola!' ÚNICAMENTE si este es el primer mensaje de la conversación. Si en el historial ya hubo mensajes previos, JAMÁS vuelvas a decir 'Hola' ni 'Hola de nuevo'. Responde directamente con agilidad (ej: '¡Excelente elección!', 'Perfecto', 'Con mucho gusto', 'Listo').\n2. MEMORIA DE SERVICIOS: Si en el historial el cliente ya dijo qué servicio busca (ej: 'corte', 'corte normal', 'balayage'), NUNCA le vuelvas a preguntar qué servicio desea agendar. Asume de inmediato ese servicio.\n3. GUÍA EXACTA AL CLIENTE: Cuando el cliente proponga una hora (ej: 'mañana a las 3'), no le hagas preguntas genéricas. Pídele con precisión solo el dato que falta: '¡Listo! Para apartar tu cupo de mañana a las 3:00 PM para tu corte, ¿me confirmas tu nombre completo?'.\n4. REGLA OBLIGATORIA DE RESERVA: En cuanto tengas nombre completo, servicio y fecha/hora, TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"agendar_cita\". ESTÁ TOTALMENTE PROHIBIDO confirmar la cita sin haber llamado a la herramienta. Solo cuando la herramienta devuelva éxito, confírmale la cita con calidez e indícale la dirección Cra 83 # 09.\n5. Si el cliente solicita hablar con Andrés o una persona, dile amablemente que dejas una nota para que Andrés se comunique en cuanto se desocupe.\n6. Sé concisa (máximo 2 a 3 oraciones por mensaje)."
         }
       },
       "id": "node-ai-agent",
@@ -90,7 +91,7 @@
         }
       },
       "id": "node-llm-model",
-      "name": "OpenAI / Gemini Chat Model",
+      "name": "OpenAI / Gemini / DeepSeek Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [1160, 440]
@@ -105,7 +106,7 @@
           "value": {
             "nombre_cliente": "={{ $fromAI('nombre_cliente', 'Nombre completo del cliente', 'string') }}",
             "servicio": "={{ $fromAI('servicio', 'Servicio solicitado ej: corte, balayage', 'string') }}",
-            "fecha_hora": "={{ $fromAI('fecha_hora', 'Fecha y hora de la cita en formato YYYY-MM-DDTHH:mm:ss', 'string') }}",
+            "fecha_hora": "={{ $fromAI('fecha_hora', 'Fecha y hora exacta solicitada por el cliente en formato ISO YYYY-MM-DDTHH:mm:ss. Año actual 2026.', 'string') }}",
             "wa_id": "={{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}"
           }
         }
@@ -180,7 +181,7 @@
         ]
       ]
     },
-    "OpenAI / Gemini Chat Model": {
+    "OpenAI / Gemini / DeepSeek Model": {
       "ai_languageModel": [
         [
           {
