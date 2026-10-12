@@ -1,0 +1,168 @@
+{
+  "id": "wTG02ComandAdmin01",
+  "name": "TG-02_ComandosAdmin",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "node-tg-trigger",
+      "name": "Telegram Trigger: Mensaje Entrante",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-telegram-andres",
+          "name": "Telegram Bot Andrés Peluquería"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-is-admin",
+              "leftValue": "={{ $json.message.chat.id.toString() }}",
+              "rightValue": "={{ ($env.TELEGRAM_ADMIN_CHAT_ID || '').toString() }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-check-auth",
+      "name": "¿Es Andrés (Admin)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT c.id, c.fecha_inicio, cl.nombre AS cliente, cl.wa_id, s.nombre AS servicio, s.precio_base_cop AS precio, c.estado\nFROM citas c\nJOIN clientes cl ON cl.id = c.cliente_id\nJOIN servicios s ON s.id = c.servicio_id\nWHERE DATE(c.fecha_inicio AT TIME ZONE 'America/Bogota') = CURRENT_DATE\n  AND c.estado = 'confirmada'\nORDER BY c.fecha_inicio ASC;",
+        "options": {}
+      },
+      "id": "node-db-get-today-appointments",
+      "name": "DB: Consultar Citas de Hoy",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [680, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst fechaHoy = new Date().toLocaleDateString('es-CO', { timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long' });\n\nif (items.length === 0 || !items[0].json.cliente) {\n  return [{\n    json: {\n      texto_respuesta: `📅 *AGENDA DE HOY* (${fechaHoy}):\\n\\n✨ No tienes citas programadas para hoy todavía.\\n¡Día libre o listo para recibir nuevas clientas!`\n    }\n  }];\n}\n\nlet totalRecaudo = 0;\nlet resumen = `📅 *AGENDA DE HOY* (${fechaHoy})\\n`;\nresumen += `Total citas confirmadas: *${items.length}*\\n\\n`;\n\nitems.forEach((item, index) => {\n  const c = item.json;\n  const hora = new Date(c.fecha_inicio).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: true });\n  const valor = Number(c.precio || 0);\n  totalRecaudo += valor;\n\n  resumen += `*${index + 1}.* ⏰ *${hora}* — ${c.cliente || 'Cliente'}\\n`;\n  resumen += `   💇 ${c.servicio} ($${valor.toLocaleString('es-CO')} COP)\\n`;\n  resumen += `   📱 [wa.me/${c.wa_id}](https://wa.me/${c.wa_id})\\n\\n`;\n});\n\nresumen += `💵 *Proyección estimada del día:* $${totalRecaudo.toLocaleString('es-CO')} COP`;\n\nreturn [{\n  json: {\n    texto_respuesta: resumen\n  }\n}];"
+      },
+      "id": "node-format-schedule",
+      "name": "Formatear Agenda del Día",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 240]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger: Mensaje Entrante').first().json.message.chat.id }}",
+        "text": "={{ $json.texto_respuesta }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-tg-reply-schedule",
+      "name": "Telegram: Responder Agenda",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1160, 240],
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-telegram-andres",
+          "name": "Telegram Bot Andrés Peluquería"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "⛔ *Acceso restringido.*\nEste bot es de uso exclusivo y confidencial para Andrés (Administrador de Andrés Peluquería).",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-tg-reject-unauthorized",
+      "name": "Telegram: Rechazar No Autorizado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [680, 440],
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-telegram-andres",
+          "name": "Telegram Bot Andrés Peluquería"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger: Mensaje Entrante": {
+      "main": [
+        [
+          {
+            "node": "¿Es Andrés (Admin)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es Andrés (Admin)?": {
+      "main": [
+        [
+          {
+            "node": "DB: Consultar Citas de Hoy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: Rechazar No Autorizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Consultar Citas de Hoy": {
+      "main": [
+        [
+          {
+            "node": "Formatear Agenda del Día",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Agenda del Día": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Responder Agenda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

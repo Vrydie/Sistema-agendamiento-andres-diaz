@@ -131,13 +131,34 @@
     },
     {
       "parameters": {
+        "workflowId": "TG-01_NotificadorCitas",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nombre_cliente": "={{ $('Calcular Horas y Duración').first().json.nombre_cliente }}",
+            "nombre_servicio": "={{ $('Calcular Horas y Duración').first().json.nombre_servicio }}",
+            "precio": "={{ $('Calcular Horas y Duración').first().json.precio }}",
+            "fecha_cita_formateada": "={{ $('Calcular Horas y Duración').first().json.fecha_cita_formateada }}",
+            "wa_id": "={{ $('Calcular Horas y Duración').first().json.wa_id }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "node-call-tg-notif",
+      "name": "Ejecutar TG-01_NotificadorCitas",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1880, 240]
+    },
+    {
+      "parameters": {
         "jsCode": "const info = $('Calcular Horas y Duración').first().json;\n\nreturn [{\n  json: {\n    exito: true,\n    mensaje: `¡Listo! Tu cita para ${info.nombre_servicio} ha quedado confirmada para el ${info.fecha_cita_formateada}. Te esperamos en Cra 83 # 09.`\n  }\n}];"
       },
       "id": "node-success-response",
       "name": "Respuesta Éxito Cita",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1880, 240]
+      "position": [2120, 240]
     },
     {
       "parameters": {
@@ -225,6 +246,17 @@
       ]
     },
     "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar TG-01_NotificadorCitas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar TG-01_NotificadorCitas": {
       "main": [
         [
           {

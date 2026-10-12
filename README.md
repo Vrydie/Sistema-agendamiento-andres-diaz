@@ -75,12 +75,14 @@ El proyecto implementa la metodología **Full-Stack Automator** con arquitectura
  ┃ ┗ 📂 queries/               # Consultas analíticas y reportes
  ┣ 📂 workflows/               # Código fuente de n8n exportado en JSON
  ┃ ┣ 📂 core/                  # DS-00 (Errores), DS-01 (In), DS-02 (AI Router), DS-03 (Out)
- ┃ ┣ 📂 tools/                 # T-01 (Disponibilidad), T-02 (Crear Cita), T-03 (Escalar Humano)
+ ┃ ┣ 📂 tools/                 # T-01 (Disponibilidad), T-02 (Crear Cita), T-03 (Escalar Humano), TG-01 (Notificador Telegram), TG-02 (Comandos Admin)
  ┃ ┗ 📂 crons/                 # C-01 (Recordatorio de citas 2h antes)
  ┣ 📂 docs/                    # Documentación de ingeniería y comercial
  ┃ ┣ 📜 METODOLOGIA.md         # Estándar y convenciones de trabajo
  ┃ ┣ 📜 REQUERIMIENTOS.md      # Requerimientos funcionales y no funcionales
- ┃ ┗ 📜 ROADMAP_LANDING.md     # Checklist paso a paso del embudo
+ ┃ ┣ 📜 ROADMAP_LANDING.md     # Checklist paso a paso del embudo
+ ┃ ┣ 📜 PLAN_TELEGRAM_ADMIN.md # Arquitectura y comandos del bot de Telegram
+ ┃ ┗ 📜 ARQUITECTURA_ACTUAL_RAILWAY_SHEETS.md # Despliegue en Railway, WhatsApp y Sheets
  ┣ 📂 .github/                 # Plantillas de Issues y Pull Requests
  ┣ 📜 AGENTS.md                # Reglas inquebrantables del asistente AI
  ┣ 📜 CONTRIBUTING.md          # Guía de contribución y ramas
@@ -115,17 +117,18 @@ El proyecto implementa la metodología **Full-Stack Automator** con arquitectura
   - [x] Maquetación mobile-first y diseño Dark Mode con acentos dorados.
   - [x] Inyección de parámetros dinámicos en enlaces `wa.me/`.
   - [x] Integración de fotografías y logo real de Andrés Díaz.
-- [ ] **Fase 3: Motor N8N & Agente IA**
-  - [ ] Flujo `DS-01_WebhookIn` con tabla `eventos_webhook` y función Debounce.
-  - [ ] Flujo `DS-02_AgentRouter` con memoria y Function Calling.
-  - [ ] Sub-flujos de herramientas `T-01` (Disponibilidad) y `T-02` (Crear Cita).
-  - [ ] Flujo de salida unificado `DS-03_MessageOut`.
-- [ ] **Fase 4: Sandbox & Manejo de Casos Borde**
-  - [ ] Pruebas anti-doble booking y solapamientos.
-  - [ ] Sistema de escape y pausa humana (`T-03_EscalarHumano`).
-- [ ] **Fase 5: Despliegue en Producción & Capacitación**
-  - [ ] Despliegue en VPS / Servidor Cloud.
-  - [ ] Capacitación al dueño y activación de recordatorios automáticos.
+- [x] **Fase 3: Motor N8N, WhatsApp Oficial & Agente IA**
+  - [x] Flujo `DS-01_WebhookIn` con tabla `eventos_webhook` y función Debounce de 4s.
+  - [x] Flujo `DS-02_AgentRouter` con memoria y Function Calling (`agendar_cita`).
+  - [x] Sub-flujos de herramientas `T-01` (Disponibilidad) y `T-02` (Crear Cita con Google Sheets `AndresPDB`).
+  - [x] Flujo de salida unificado `DS-03_MessageOut` con Meta Cloud API oficial (`+57 310 8484221`).
+- [x] **Fase 4: Persistencia CRM & Canal Telegram Admin**
+  - [x] Integración de Google Sheets con OAuth2 (registro de citas en vivo).
+  - [x] Planeación y flujos de Telegram Admin (`TG-01_NotificadorCitas` y `TG-02_ComandosAdmin`).
+  - [x] Guardrails y restricciones de horarios (Lunes a Sábado 9am - 8pm) y catálogo cerrado.
+- [ ] **Fase 5: Demo Comercial para Andrés & Despliegue Web Final**
+  - [ ] Publicación de Landing Page en Cloudflare Pages / Vercel con SSL gratis.
+  - [ ] Demostración en vivo de ROI con Andrés.
 
 ---
 

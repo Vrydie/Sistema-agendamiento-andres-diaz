@@ -1,0 +1,62 @@
+{
+  "id": "wTG01NotifCita01",
+  "name": "TG-01_NotificadorCitas",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "node-trigger-tg01",
+      "name": "Trigger: Notificar Cita Confirmada",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}",
+        "text": "=🔔 *¡NUEVA CITA CONFIRMADA EN EL SALÓN!* 💇✨\n\n👤 *Cliente:* {{ $json.nombre_cliente }}\n💇 *Servicio:* {{ $json.nombre_servicio }}\n💰 *Valor:* ${{ Number($json.precio || 45000).toLocaleString('es-CO') }} COP\n⏰ *Cita:* {{ $json.fecha_cita_formateada }}\n📍 *Sede:* Cra 83 # 09, Bogotá\n\n📱 *WhatsApp:* +{{ $json.wa_id }}\n👉 [Toca aquí para chatear con el cliente](https://wa.me/{{ $json.wa_id }})",
+        "additionalFields": {
+          "parse_mode": "Markdown",
+          "reply_markup": "inline_keyboard",
+          "inline_keyboard": {
+            "rows": [
+              {
+                "row": [
+                  {
+                    "text": "💬 Abrir WhatsApp del Cliente",
+                    "url": "=https://wa.me/{{ $json.wa_id }}"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-tg-send-alert",
+      "name": "Telegram: Enviar Alerta a Andrés",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [460, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-telegram-andres",
+          "name": "Telegram Bot Andrés Peluquería"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Trigger: Notificar Cita Confirmada": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Enviar Alerta a Andrés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
