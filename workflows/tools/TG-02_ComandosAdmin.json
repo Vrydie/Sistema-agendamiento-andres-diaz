@@ -3,29 +3,41 @@
   "nodes": [
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT \n  c.id, \n  to_char(c.fecha_inicio AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD HH24:MI') AS fecha_inicio, \n  to_char(c.fecha_fin AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD HH24:MI') AS fecha_fin, \n  COALESCE(cl.nombre, 'Cliente') AS cliente, \n  COALESCE(cl.wa_id, '') AS wa_id, \n  COALESCE(s.nombre, 'Corte & Styling') AS servicio, \n  COALESCE(s.precio_base_cop, 45000) AS precio, \n  c.estado\nFROM citas c\nLEFT JOIN clientes cl ON cl.id = c.cliente_id\nLEFT JOIN servicios s ON s.id = c.servicio_id\nORDER BY c.fecha_inicio ASC;\n",
+        "operation": "readRows",
+        "documentId": {
+          "__rl": true,
+          "value": "1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk",
+          "mode": "list",
+          "cachedResultName": "AndresPDB",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit#gid=0"
+        },
         "options": {}
       },
       "id": "f7734357-e8e8-4738-8e49-421e4f824370",
-      "name": "DB: Consultar Agenda Completa",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
+      "name": "Google Sheets: Consultar Agenda",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
       "position": [
         528,
         528
       ],
-      "alwaysOutputData": true,
       "credentials": {
-        "postgres": {
-          "id": "EppjWtl0P6ZXP0fh",
-          "name": "Postgres account"
+        "googleSheetsOAuth2Api": {
+          "id": "nO3OdsbG8TNMXxZN",
+          "name": "Google Sheets account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst fechaHoy = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });\nconst msgRaw = $('Telegram Trigger: Mensaje Entrante1').first().json.message;\nconst textoAndres = msgRaw.text || '¿Qué citas tengo?';\n\nconst citas = items.map(i => i.json).filter(j => j && j.cliente);\n\nreturn [{\n  json: {\n    chat_id: msgRaw.chat.id,\n    pregunta_andres: textoAndres,\n    fecha_actual: fechaHoy,\n    citas: citas,\n    resumen_citas_texto: JSON.stringify(citas, null, 2)\n  }\n}];"
+        "jsCode": "const items = $input.all();\nconst fechaHoy = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });\nconst msgRaw = $('Telegram Trigger: Mensaje Entrante1').first().json.message;\nconst textoAndres = msgRaw.text || '¿Qué citas tengo?';\n\nconst citas = items\n  .map(i => i.json)\n  .filter(j => j && (j['Nombre Cliente'] || j.cliente))\n  .map(j => ({\n    cliente: j['Nombre Cliente'] || j.cliente,\n    wa_id: j['WhatsApp'] || j.wa_id,\n    servicio: j['Servicio'] || j.servicio,\n    fecha_cita: j['Fecha Cita'] || j.fecha_inicio,\n    precio: j['Precio COP'] || j.precio,\n    estado: j['Estado'] || j.estado || 'Confirmada'\n  }));\n\nreturn [{\n  json: {\n    chat_id: msgRaw.chat.id,\n    pregunta_andres: textoAndres,\n    fecha_actual: fechaHoy,\n    citas: citas,\n    resumen_citas_texto: JSON.stringify(citas, null, 2)\n  }\n}];"
       },
       "id": "3831a66c-7d6f-42cc-bcaf-d2f75cb7834e",
       "name": "Preparar Contexto Agenda & Pregunta",
@@ -180,7 +192,7 @@
   ],
   "pinData": {},
   "connections": {
-    "DB: Consultar Agenda Completa": {
+    "Google Sheets: Consultar Agenda": {
       "main": [
         [
           {
@@ -228,7 +240,7 @@
       "main": [
         [
           {
-            "node": "DB: Consultar Agenda Completa",
+            "node": "Google Sheets: Consultar Agenda",
             "type": "main",
             "index": 0
           }
