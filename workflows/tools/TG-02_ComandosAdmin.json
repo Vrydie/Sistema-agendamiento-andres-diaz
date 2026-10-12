@@ -52,7 +52,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  c.id, \n  c.fecha_inicio AT TIME ZONE 'America/Bogota' AS fecha_inicio, \n  c.fecha_fin AT TIME ZONE 'America/Bogota' AS fecha_fin, \n  cl.nombre AS cliente, \n  cl.wa_id, \n  s.nombre AS servicio, \n  s.precio_base_cop AS precio, \n  c.estado\nFROM citas c\nJOIN clientes cl ON cl.id = c.cliente_id\nJOIN servicios s ON s.id = c.servicio_id\nWHERE c.estado = 'confirmada'\nORDER BY c.fecha_inicio ASC;",
+        "query": "SELECT \n  c.id, \n  to_char(c.fecha_inicio AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD HH24:MI') AS fecha_inicio, \n  to_char(c.fecha_fin AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD HH24:MI') AS fecha_fin, \n  COALESCE(cl.nombre, 'Cliente') AS cliente, \n  COALESCE(cl.wa_id, '') AS wa_id, \n  COALESCE(s.nombre, 'Corte & Styling') AS servicio, \n  COALESCE(s.precio_base_cop, 45000) AS precio, \n  c.estado\nFROM citas c\nLEFT JOIN clientes cl ON cl.id = c.cliente_id\nLEFT JOIN servicios s ON s.id = c.servicio_id\nORDER BY c.fecha_inicio ASC;",
         "options": {}
       },
       "id": "node-db-get-appointments",
