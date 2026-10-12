@@ -39,6 +39,91 @@
       "parameters": {
         "conditions": {
           "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "check-reset-cmd",
+              "leftValue": "={{ (/^(?:\\/|#)?(?:reset|reiniciar|limpiar|borrar)$/i).test(($('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto || '').trim()) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a4d93214-58f7-418b-965d-6c17e3458ef9",
+      "name": "¿Es Comando Reset?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM mensajes \nWHERE conversacion_id IN (\n    SELECT c.id FROM conversaciones c\n    JOIN clientes cl ON cl.id = c.cliente_id\n    WHERE cl.wa_id = $1\n);\n\nUPDATE conversaciones \nSET estado = 'cerrada', ultimo_mensaje_en = CURRENT_TIMESTAMP \nWHERE cliente_id IN (\n    SELECT id FROM clientes WHERE wa_id = $1\n);\n\nUPDATE clientes \nSET nombre = 'Cliente' \nWHERE wa_id = $1;\n\nSELECT 'ok' AS status;",
+        "options": {
+          "queryReplacement": "={{ [$('Trigger: Mensaje Consolidado').first().json.wa_id] }}"
+        }
+      },
+      "id": "f5120349-411a-45c1-9018-0a02ef497c28",
+      "name": "DB: Reiniciar Memoria",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -100,
+        -180
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "wa-reset-id",
+              "name": "wa_id",
+              "value": "={{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}",
+              "type": "string"
+            },
+            {
+              "id": "wa-reset-text",
+              "name": "texto",
+              "value": "🧹 *Memoria y contexto reiniciados con éxito.*\n\nSe ha borrado el historial de conversación para tu número. Ahora puedes iniciar una prueba completamente nueva como si fueras un cliente nuevo.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e30e1892-0b2f-410a-81f1-799d14ea1ba2",
+      "name": "Set: Respuesta Reset",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        200,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
             "caseSensitive": true,
             "leftValue": "",
             "typeValidation": "strict",
@@ -320,7 +405,47 @@
       "main": [
         [
           {
+            "node": "¿Es Comando Reset?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es Comando Reset?": {
+      "main": [
+        [
+          {
+            "node": "DB: Reiniciar Memoria",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "¿Bot Activo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Reiniciar Memoria": {
+      "main": [
+        [
+          {
+            "node": "Set: Respuesta Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Respuesta Reset": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar DS-03_MessageOut",
             "type": "main",
             "index": 0
           }
