@@ -1,0 +1,196 @@
+{
+  "name": "C-01_RecordatoriosCitas",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "e6a21804-9d11-47fa-8ea5-0b0bbd603a11",
+      "name": "Cron: Cada 15 Minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -360,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    c.id AS cita_id,\n    c.fecha_inicio,\n    c.fecha_fin,\n    cl.wa_id,\n    COALESCE(cl.nombre, 'Cliente') AS cliente_nombre,\n    s.nombre AS servicio_nombre,\n    s.precio_base_cop\nFROM citas c\nJOIN clientes cl ON cl.id = c.cliente_id\nJOIN servicios s ON s.id = c.servicio_id\nWHERE c.estado = 'confirmada'\n  AND c.recordatorio_enviado = FALSE\n  AND c.fecha_inicio >= CURRENT_TIMESTAMP\n  AND c.fecha_inicio <= (CURRENT_TIMESTAMP + INTERVAL '2 hours 15 minutes')\nORDER BY c.fecha_inicio ASC;",
+        "options": {}
+      },
+      "id": "1bc2399e-fa31-4be6-8806-c8529323f4a1",
+      "name": "DB: Buscar Citas Próximas (2 Horas)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -120,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  if (!data || !data.wa_id || !data.fecha_inicio) continue;\n\n  const fechaObj = new Date(data.fecha_inicio);\n  const opcionesFecha = {\n    weekday: 'long',\n    day: 'numeric',\n    month: 'long',\n    timeZone: 'America/Bogota'\n  };\n  const opcionesHora = {\n    hour: 'numeric',\n    minute: '2-digit',\n    hour12: true,\n    timeZone: 'America/Bogota'\n  };\n\n  const diaFormateado = fechaObj.toLocaleDateString('es-CO', opcionesFecha);\n  const horaFormateada = fechaObj.toLocaleTimeString('es-CO', opcionesHora);\n\n  const nombreLimpio = (data.cliente_nombre && data.cliente_nombre !== 'Cliente' && data.cliente_nombre !== 'Cliente WhatsApp')\n    ? data.cliente_nombre.split(' ')[0]\n    : 'Hola';\n\n  const saludo = (nombreLimpio !== 'Hola') ? `¡Hola, ${nombreLimpio}!` : '¡Hola!';\n\n  const texto = `${saludo} Te saludamos de *Andrés Díaz - Tendencia en Peluquería* ✨\\n\\nTe recordamos que tienes una cita programada para hoy:\\n💇 *Servicio:* ${data.servicio_nombre}\\n⏰ *Hora:* ${horaFormateada} (${diaFormateado})\\n📍 *Sede:* Cra 83 # 09, Bogotá\\n\\n🌟 Andrés y el equipo ya tienen todo listo para tu atención. ¿Nos confirmas por favor si ya vienes en camino? Si necesitas alguna indicación para llegar, con gusto te guiamos. ¡Te esperamos!`;\n\n  results.push({\n    json: {\n      cita_id: data.cita_id,\n      wa_id: data.wa_id.toString().replace(/\\D/g, ''),\n      cliente_nombre: data.cliente_nombre,\n      servicio_nombre: data.servicio_nombre,\n      hora_formateada: horaFormateada,\n      dia_formateado: diaFormateado,\n      texto: texto\n    }\n  });\n}\n\nreturn results;\n"
+      },
+      "id": "78ff0511-2092-41ba-87b6-bca542750e39",
+      "name": "Formatear Recordatorio WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "XQb52Xvvo5JBu2eZ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/XQb52Xvvo5JBu2eZ",
+          "cachedResultName": "DS-03_MessageOut"
+        },
+        "options": {}
+      },
+      "id": "e8392182-3c22-4411-9a70-76c2a4985221",
+      "name": "Ejecutar DS-03_MessageOut",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        360,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE citas \nSET recordatorio_enviado = TRUE, actualizada_en = CURRENT_TIMESTAMP\nWHERE id = $1::uuid;\nSELECT 'ok' AS status;",
+        "options": {
+          "queryReplacement": "={{ [$('Formatear Recordatorio WhatsApp').item.json.cita_id] }}"
+        }
+      },
+      "id": "9218fbd2-0882-412f-b428-15cf64939da1",
+      "name": "DB: Marcar Recordatorio Enviado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        600,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "=5926139023",
+        "text": "=⏰ *Recordatorio de cita enviado automáticamente*\n\n👤 *Cliente:* {{ $('Formatear Recordatorio WhatsApp').item.json.cliente_nombre }}\n💇 *Servicio:* {{ $('Formatear Recordatorio WhatsApp').item.json.servicio_nombre }}\n⏰ *Cita:* {{ $('Formatear Recordatorio WhatsApp').item.json.hora_formateada }}\n📱 *WhatsApp:* +{{ $('Formatear Recordatorio WhatsApp').item.json.wa_id }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e936551b-2612-4f32-8e10-381048618e77",
+      "name": "Telegram: Avisar a Andrés",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        840,
+        200
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "telegramApi": {
+          "id": "ip1uLbMWnxO9XrUT",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron: Cada 15 Minutos": {
+      "main": [
+        [
+          {
+            "node": "DB: Buscar Citas Próximas (2 Horas)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Buscar Citas Próximas (2 Horas)": {
+      "main": [
+        [
+          {
+            "node": "Formatear Recordatorio WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Recordatorio WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar DS-03_MessageOut",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar DS-03_MessageOut": {
+      "main": [
+        [
+          {
+            "node": "DB: Marcar Recordatorio Enviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Marcar Recordatorio Enviado": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Avisar a Andrés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c01-recordatorios-2026-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
