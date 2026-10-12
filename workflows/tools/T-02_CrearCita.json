@@ -166,7 +166,7 @@
             "Nombre Cliente": "={{ $('Calcular Horas y Duración').first().json.nombre_cliente }}",
             "WhatsApp": "={{ $('Calcular Horas y Duración').first().json.wa_id }}",
             "Servicio": "={{ $('Calcular Horas y Duración').first().json.nombre_servicio }}",
-            "Fecha Cita": "={{ new Date($('Calcular Horas y Duración').first().json.fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) }}\n",
+            "Fecha Cita": "={{ new Date($('Calcular Horas y Duración').first().json.fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) }}",
             "Precio COP": "={{ $('Calcular Horas y Duración').first().json.precio }}",
             "Estado": "Confirmada"
           },
