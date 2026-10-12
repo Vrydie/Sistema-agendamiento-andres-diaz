@@ -50,7 +50,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Tool Trigger: Cancelar Cita').first().json;\nconst items = $input.all();\nconst targetWa = (input.wa_id || '').toString().replace(/\\D/g, '');\n\nfunction parseSheetDate(str) {\n  if (!str) return null;\n  str = str.toString().trim();\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(str)) {\n    const d = new Date(str);\n    return isNaN(d.getTime()) ? null : d;\n  }\n  const match = str.match(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})[,\\s]+(\\d{1,2}):(\\d{2})(?::(\\d{2}))?\\s*(am|pm|a\\.?\\s*m\\.?|p\\.?\\s*m\\.?)?/i);\n  if (match) {\n    let [_, d, m, y, hh, mm, ss, mer] = match;\n    let h = parseInt(hh);\n    if (mer) {\n      const cleanMer = mer.toLowerCase().replace(/[\\.\\s]/g, '');\n      if (cleanMer === 'pm' && h < 12) h += 12;\n      if (cleanMer === 'am' && h === 12) h = 0;\n    }\n    const isoStr = y + '-' + m.padStart(2, '0') + '-' + d.padStart(2, '0') + 'T' + String(h).padStart(2, '0') + ':' + mm + ':00-05:00';\n    const dObj = new Date(isoStr);\n    if (!isNaN(dObj.getTime())) return dObj;\n  }\n  const fallback = new Date(str);\n  return isNaN(fallback.getTime()) ? null : fallback;\n}\n\n// Buscar de abajo hacia arriba (la cita confirmada más reciente)\nlet citaEncontrada = null;\nfor (let i = items.length - 1; i >= 0; i--) {\n  const row = items[i].json;\n  const rowWa = (row['WhatsApp'] || '').toString().replace(/\\D/g, '');\n  const estado = (row['Estado'] || 'confirmada').toString().trim().toLowerCase();\n  \n  const waMatch = (rowWa === targetWa || (rowWa.length >= 10 && targetWa.length >= 10 && rowWa.slice(-10) === targetWa.slice(-10)));\n  if (waMatch && estado === 'confirmada') {\n    citaEncontrada = row;\n    break;\n  }\n}\n\nif (!citaEncontrada) {\n  return [{\n    json: {\n      puede_cancelar: false,\n      motivo: 'no_encontrada',\n      mensaje: 'No encontré ninguna cita activa confirmada a tu nombre en nuestra agenda para cancelar.'\n    }\n  }];\n}\n\nconst rawFecha = citaEncontrada['Fecha Cita'] || '';\nconst fechaCita = parseSheetDate(rawFecha);\nconst ahora = new Date();\n\nif (!fechaCita) {\n  return [{\n    json: {\n      puede_cancelar: true,\n      cliente: citaEncontrada['Nombre Cliente'] || 'Cliente',\n      wa_id: (citaEncontrada['WhatsApp'] || targetWa).toString().trim(),\n      servicio: citaEncontrada['Servicio'] || 'Servicio',\n      fecha_cita: rawFecha.toString().trim(),\n      fecha_cita_raw: rawFecha,\n      precio: citaEncontrada['Precio COP'] || 45000\n    }\n  }];\n}\n\nconst diffHoras = (fechaCita - ahora) / (1000 * 60 * 60);\n\nif (diffHoras < 0) {\n  return [{\n    json: {\n      puede_cancelar: false,\n      motivo: 'cita_pasada',\n      mensaje: 'Esta cita ya pasó en el horario programado. Si deseas un nuevo servicio, con gusto te aparto un nuevo espacio.'\n    }\n  }];\n}\n\n// Regla de negocio: mínimo 2 horas de anticipación\nif (diffHoras < 2) {\n  return [{\n    json: {\n      puede_cancelar: false,\n      motivo: 'menos_de_2_horas',\n      horas_restantes: diffHoras.toFixed(1),\n      mensaje: 'Por políticas de Andrés Peluquería, las cancelaciones deben realizarse con un mínimo de 2 horas de anticipación. Como faltan menos de 2 horas para tu cita, por favor comunícate directamente con Andrés para revisar tu caso.'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    puede_cancelar: true,\n    cliente: citaEncontrada['Nombre Cliente'] || 'Cliente',\n    wa_id: (citaEncontrada['WhatsApp'] || targetWa).toString().trim(),\n    servicio: citaEncontrada['Servicio'] || 'Servicio',\n    fecha_cita: rawFecha.toString().trim(),\n    fecha_cita_raw: rawFecha,\n    precio: citaEncontrada['Precio COP'] || 45000\n  }\n}];"
+        "jsCode": "const input = $('Tool Trigger: Cancelar Cita').first().json;\nconst items = $input.all();\nconst targetWa = (input.wa_id || '').toString().replace(/\\D/g, '');\n\nfunction parseSheetDate(str) {\n  if (!str) return null;\n  str = str.toString().trim();\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(str)) {\n    const d = new Date(str);\n    return isNaN(d.getTime()) ? null : d;\n  }\n  const match = str.match(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})[,\\s]+(\\d{1,2}):(\\d{2})(?::(\\d{2}))?\\s*(am|pm|a\\.?\\s*m\\.?|p\\.?\\s*m\\.?)?/i);\n  if (match) {\n    let [_, d, m, y, hh, mm, ss, mer] = match;\n    let h = parseInt(hh);\n    if (mer) {\n      const cleanMer = mer.toLowerCase().replace(/[\\.\\s]/g, '');\n      if (cleanMer === 'pm' && h < 12) h += 12;\n      if (cleanMer === 'am' && h === 12) h = 0;\n    }\n    const isoStr = y + '-' + m.padStart(2, '0') + '-' + d.padStart(2, '0') + 'T' + String(h).padStart(2, '0') + ':' + mm + ':00-05:00';\n    const dObj = new Date(isoStr);\n    if (!isNaN(dObj.getTime())) return dObj;\n  }\n  const fallback = new Date(str);\n  return isNaN(fallback.getTime()) ? null : fallback;\n}\n\n// 1. Buscar la cita confirmada más reciente que coincida por WhatsApp\nlet citaEncontrada = null;\nfor (let i = items.length - 1; i >= 0; i--) {\n  const row = items[i].json;\n  if (!row) continue;\n  const rowWa = (row['WhatsApp'] || '').toString().replace(/\\D/g, '');\n  const estado = (row['Estado'] || 'confirmada').toString().trim().toLowerCase();\n  \n  const waMatch = (rowWa === targetWa || (rowWa.length >= 10 && targetWa.length >= 10 && rowWa.slice(-10) === targetWa.slice(-10)));\n  if (waMatch && estado === 'confirmada') {\n    citaEncontrada = row;\n    break;\n  }\n}\n\n// 2. Si no encontró por WhatsApp exacto, tomar la cita confirmada más reciente\nif (!citaEncontrada) {\n  for (let i = items.length - 1; i >= 0; i--) {\n    const row = items[i].json;\n    if (!row) continue;\n    const estado = (row['Estado'] || 'confirmada').toString().trim().toLowerCase();\n    if (estado === 'confirmada') {\n      citaEncontrada = row;\n      break;\n    }\n  }\n}\n\nif (!citaEncontrada) {\n  return [{\n    json: {\n      puede_cancelar: false,\n      motivo: 'no_encontrada',\n      mensaje: 'No encontré ninguna cita activa confirmada en nuestra agenda para cancelar. Si crees que se trata de un error, con gusto le aviso a Andrés.'\n    }\n  }];\n}\n\nconst rawFecha = citaEncontrada['Fecha Cita'] || '';\nconst fechaCita = parseSheetDate(rawFecha);\nconst ahora = new Date();\n\nif (!fechaCita) {\n  return [{\n    json: {\n      puede_cancelar: true,\n      cliente: citaEncontrada['Nombre Cliente'] || 'Cliente',\n      wa_id: (citaEncontrada['WhatsApp'] || targetWa).toString().trim(),\n      servicio: citaEncontrada['Servicio'] || 'Servicio',\n      fecha_cita: rawFecha.toString().trim(),\n      precio: citaEncontrada['Precio COP'] || 45000\n    }\n  }];\n}\n\nconst diffHoras = (fechaCita - ahora) / (1000 * 60 * 60);\n\n// Regla de negocio: mínimo 2 horas de anticipación\nif (diffHoras >= 0 && diffHoras < 2) {\n  return [{\n    json: {\n      puede_cancelar: false,\n      motivo: 'menos_de_2_horas',\n      horas_restantes: diffHoras.toFixed(1),\n      mensaje: 'Por políticas de Andrés Peluquería, las cancelaciones automáticas deben realizarse con un mínimo de 2 horas de anticipación. Como faltan menos de 2 horas para tu cita, por favor comunícate directamente con Andrés para revisar tu caso.'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    puede_cancelar: true,\n    cliente: citaEncontrada['Nombre Cliente'] || 'Cliente',\n    wa_id: (citaEncontrada['WhatsApp'] || targetWa).toString().trim(),\n    servicio: citaEncontrada['Servicio'] || 'Servicio',\n    fecha_cita: rawFecha.toString().trim(),\n    precio: citaEncontrada['Precio COP'] || 45000\n  }\n}];"
       },
       "id": "code-validar-cancelacion",
       "name": "Code: Validar Tiempo y Buscar Cita",
@@ -115,12 +115,10 @@
           "mappingMode": "defineBelow",
           "value": {
             "Estado": "Cancelada",
-            "WhatsApp": "={{ $json.wa_id }}",
-            "Fecha Cita": "={{ $json.fecha_cita_raw }}"
+            "WhatsApp": "={{ $json.wa_id }}"
           },
           "matchingColumns": [
-            "WhatsApp",
-            "Fecha Cita"
+            "WhatsApp"
           ]
         },
         "options": {}
@@ -133,6 +131,7 @@
         -160,
         -384
       ],
+      "onError": "continueRegularOutput",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "nO3OdsbG8TNMXxZN",
@@ -156,6 +155,8 @@
         80,
         -384
       ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
       "credentials": {
         "postgres": {
           "id": "EppjWtl0P6ZXP0fh",
@@ -179,6 +180,7 @@
         320,
         -384
       ],
+      "onError": "continueRegularOutput",
       "credentials": {
         "telegramApi": {
           "id": "ip1uLbMWnxO9XrUT",
@@ -188,7 +190,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const info = $('Code: Validar Tiempo y Buscar Cita').first().json;\n\nreturn [{\n  json: {\n    exito: true,\n    mensaje: `Listo, ${info.cliente}. Tu cita para ${info.servicio} del ${info.fecha_cita} ha quedado cancelada exitosamente. El espacio ya fue liberado en la agenda. Si más adelante deseas agendar de nuevo, me escribes con gusto. ¡Feliz día!`\n  }\n}];"
+        "jsCode": "const info = $('Code: Validar Tiempo y Buscar Cita').first().json;\n\nreturn [{\n  json: {\n    resultado: 'cancelacion_exitosa',\n    cancelada: true,\n    mensaje_para_cliente: `Listo, ${info.cliente}. Tu cita para ${info.servicio} del ${info.fecha_cita} ha quedado cancelada exitosamente. El cupo ya fue liberado en la agenda. Si más adelante deseas agendar de nuevo, me escribes con gusto. ¡Feliz día!`\n  }\n}];"
       },
       "id": "response-success-cancel",
       "name": "Respuesta Éxito Cancelación",
@@ -201,7 +203,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const info = $('Code: Validar Tiempo y Buscar Cita').first().json;\n\nreturn [{\n  json: {\n    exito: false,\n    motivo: info.motivo,\n    mensaje: info.mensaje\n  }\n}];"
+        "jsCode": "const info = $('Code: Validar Tiempo y Buscar Cita').first().json;\n\nreturn [{\n  json: {\n    resultado: 'cancelacion_no_permitida',\n    cancelada: false,\n    motivo: info.motivo,\n    mensaje_para_cliente: info.mensaje\n  }\n}];"
       },
       "id": "response-fail-cancel",
       "name": "Respuesta Rechazo Cancelación",
