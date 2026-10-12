@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ========================================================
   const BUSINESS_CONFIG = {
     // Ingresa el número con indicativo internacional (Ej: 57 para Colombia + 3XXXXXXXXX)
-    whatsappNumber: '573000000000', 
+    whatsappNumber: '573108484221', 
     businessName: 'Andrés Díaz Peluquería',
     schedule: {
       weekdays: { open: 9, close: 20 }, // Lunes a Sábado: 9:00 AM a 8:00 PM

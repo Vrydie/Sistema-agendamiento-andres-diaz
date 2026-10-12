@@ -11,10 +11,10 @@ CREATE OR REPLACE FUNCTION obtener_o_crear_cliente(
     p_nombre VARCHAR(120) DEFAULT NULL
 )
 RETURNS TABLE (
-    cliente_id UUID,
-    conversacion_id UUID,
-    estado_conversacion VARCHAR(30),
-    es_nuevo BOOLEAN
+    out_cliente_id UUID,
+    out_conversacion_id UUID,
+    out_estado_conversacion VARCHAR(30),
+    out_es_nuevo BOOLEAN
 ) AS $$
 DECLARE
     v_cliente_id UUID;
@@ -23,7 +23,7 @@ DECLARE
     v_es_nuevo BOOLEAN := FALSE;
 BEGIN
     -- Buscar o insertar cliente
-    SELECT id INTO v_cliente_id FROM clientes WHERE wa_id = p_wa_id;
+    SELECT cl.id INTO v_cliente_id FROM clientes cl WHERE cl.wa_id = p_wa_id;
     
     IF v_cliente_id IS NULL THEN
         INSERT INTO clientes (wa_id, nombre) 
@@ -32,15 +32,15 @@ BEGIN
         v_es_nuevo := TRUE;
     ELSE
         IF p_nombre IS NOT NULL AND p_nombre <> '' THEN
-            UPDATE clientes SET nombre = p_nombre, actualizado_en = CURRENT_TIMESTAMP WHERE id = v_cliente_id;
+            UPDATE clientes cl SET nombre = p_nombre, actualizado_en = CURRENT_TIMESTAMP WHERE cl.id = v_cliente_id;
         END IF;
     END IF;
 
     -- Buscar conversación activa o crear una nueva
-    SELECT id, estado INTO v_conversacion_id, v_estado 
-    FROM conversaciones 
-    WHERE cliente_id = v_cliente_id 
-    ORDER BY ultimo_mensaje_en DESC 
+    SELECT cv.id, cv.estado INTO v_conversacion_id, v_estado 
+    FROM conversaciones cv 
+    WHERE cv.cliente_id = v_cliente_id 
+    ORDER BY cv.ultimo_mensaje_en DESC 
     LIMIT 1;
 
     IF v_conversacion_id IS NULL OR v_estado = 'cerrada' THEN
@@ -48,7 +48,7 @@ BEGIN
         VALUES (v_cliente_id, 'activa')
         RETURNING id, estado INTO v_conversacion_id, v_estado;
     ELSE
-        UPDATE conversaciones SET ultimo_mensaje_en = CURRENT_TIMESTAMP WHERE id = v_conversacion_id;
+        UPDATE conversaciones cv SET ultimo_mensaje_en = CURRENT_TIMESTAMP WHERE cv.id = v_conversacion_id;
     END IF;
 
     RETURN QUERY SELECT v_cliente_id, v_conversacion_id, v_estado, v_es_nuevo;

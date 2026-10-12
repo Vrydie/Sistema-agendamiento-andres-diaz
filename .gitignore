@@ -24,3 +24,7 @@ temp/
 Thumbs.db
 .vscode/
 .idea/
+
+# Pruebas locales y scratch
+scratch/
+test_*.json
