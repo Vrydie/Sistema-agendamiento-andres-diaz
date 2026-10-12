@@ -33,7 +33,7 @@
             {
               "id": "check-is-admin",
               "leftValue": "={{ $json.message.chat.id.toString() }}",
-              "rightValue": "={{ ($env.TELEGRAM_ADMIN_CHAT_ID || '5926139023').toString() }}",
+              "rightValue": "5926139023",
               "operator": {
                 "type": "string",
                 "operation": "equals"
@@ -52,38 +52,66 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT c.id, c.fecha_inicio, cl.nombre AS cliente, cl.wa_id, s.nombre AS servicio, s.precio_base_cop AS precio, c.estado\nFROM citas c\nJOIN clientes cl ON cl.id = c.cliente_id\nJOIN servicios s ON s.id = c.servicio_id\nWHERE DATE(c.fecha_inicio AT TIME ZONE 'America/Bogota') = CURRENT_DATE\n  AND c.estado = 'confirmada'\nORDER BY c.fecha_inicio ASC;",
+        "query": "SELECT \n  c.id, \n  c.fecha_inicio AT TIME ZONE 'America/Bogota' AS fecha_inicio, \n  c.fecha_fin AT TIME ZONE 'America/Bogota' AS fecha_fin, \n  cl.nombre AS cliente, \n  cl.wa_id, \n  s.nombre AS servicio, \n  s.precio_base_cop AS precio, \n  c.estado\nFROM citas c\nJOIN clientes cl ON cl.id = c.cliente_id\nJOIN servicios s ON s.id = c.servicio_id\nWHERE c.estado = 'confirmada'\nORDER BY c.fecha_inicio ASC;",
         "options": {}
       },
-      "id": "node-db-get-today-appointments",
-      "name": "DB: Consultar Citas de Hoy",
+      "id": "node-db-get-appointments",
+      "name": "DB: Consultar Agenda Completa",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [680, 240]
+      "position": [680, 240],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst fechaHoy = new Date().toLocaleDateString('es-CO', { timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long' });\n\nif (items.length === 0 || !items[0].json.cliente) {\n  return [{\n    json: {\n      texto_respuesta: `📅 *AGENDA DE HOY* (${fechaHoy}):\\n\\n✨ No tienes citas programadas para hoy todavía.\\n¡Día libre o listo para recibir nuevas clientas!`\n    }\n  }];\n}\n\nlet totalRecaudo = 0;\nlet resumen = `📅 *AGENDA DE HOY* (${fechaHoy})\\n`;\nresumen += `Total citas confirmadas: *${items.length}*\\n\\n`;\n\nitems.forEach((item, index) => {\n  const c = item.json;\n  const hora = new Date(c.fecha_inicio).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: true });\n  const valor = Number(c.precio || 0);\n  totalRecaudo += valor;\n\n  resumen += `*${index + 1}.* ⏰ *${hora}* — ${c.cliente || 'Cliente'}\\n`;\n  resumen += `   💇 ${c.servicio} ($${valor.toLocaleString('es-CO')} COP)\\n`;\n  resumen += `   📱 [wa.me/${c.wa_id}](https://wa.me/${c.wa_id})\\n\\n`;\n});\n\nresumen += `💵 *Proyección estimada del día:* $${totalRecaudo.toLocaleString('es-CO')} COP`;\n\nreturn [{\n  json: {\n    texto_respuesta: resumen\n  }\n}];"
+        "jsCode": "const items = $input.all();\nconst fechaHoy = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });\nconst msgRaw = $('Telegram Trigger: Mensaje Entrante').first().json.message;\nconst textoAndres = msgRaw.text || '¿Qué citas tengo?';\n\nconst citas = items.map(i => i.json).filter(j => j && j.cliente);\n\nreturn [{\n  json: {\n    chat_id: msgRaw.chat.id,\n    pregunta_andres: textoAndres,\n    fecha_actual: fechaHoy,\n    citas: citas,\n    resumen_citas_texto: JSON.stringify(citas, null, 2)\n  }\n}];"
       },
-      "id": "node-format-schedule",
-      "name": "Formatear Agenda del Día",
+      "id": "node-prep-context",
+      "name": "Preparar Contexto Agenda & Pregunta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [920, 240]
     },
     {
       "parameters": {
+        "promptType": "define",
+        "text": "=Pregunta de Andrés: {{ $json.pregunta_andres }}\nFecha y hora actual en Bogotá: {{ $json.fecha_actual }}\n\nCitas confirmadas en el sistema (JSON):\n{{ $json.resumen_citas_texto }}",
+        "options": {
+          "systemMessage": "Eres el Asistente Ejecutivo Personal y Copiloto de Andrés Díaz (dueño de Andrés Peluquería, Cra 83 # 09, Bogotá).\nTu misión es atender exclusivamente a Andrés por Telegram con calidez, agilidad, precisión y respeto.\n\nDATOS OPERATIVOS DEL SALÓN:\n- Horario de atención: Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n- Precios de referencia: Balayage ($180.000 COP, 3-4h), Corte Styling ($45.000 COP, 45-60min), Terapia Nutritiva ($70.000 COP, 1h), Gloss ($65.000 COP).\n\nCÓMO DEBES RESPONDER A ANDRÉS:\n1. Si Andrés pregunta por espacios libres (ej: '¿a qué hora tengo espacio hoy?', '¿puedo almorzar a la 1?', '¿qué horas tengo libres el viernes?'):\n   - Identifica el día que pregunta con base en la fecha actual.\n   - Cruza las citas de ese día y calcula con precisión los bloques de tiempo libres entre las 9:00 AM y las 8:00 PM.\n   - Respóndele claramente a qué horas está desocupado para recibir clientas o tomar descansos.\n2. Si Andrés pregunta qué citas tiene (hoy, mañana o en general):\n   - Filtra las citas correspondientes a esa fecha.\n   - Si tiene citas: dale la lista ordenada por hora con nombre de clienta, servicio, precio y enlace 'https://wa.me/[wa_id]'.\n   - Si no tiene citas para esa fecha: dile con simpatía que no tiene citas registradas para ese día y que tiene la agenda libre.\n3. Si Andrés pregunta por dinero o proyección de recaudo:\n   - Suma el valor de las citas del período consultado y dale la cifra exacta en pesos colombianos ($ COP).\n4. Sé conciso, elegante y usa viñetas/emojis ejecutivos de Telegram."
+        }
+      },
+      "id": "node-ai-copilot",
+      "name": "AI Agent: Copiloto Ejecutivo Andrés",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1160, 240]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "node-copilot-model",
+      "name": "OpenAI / Gemini / DeepSeek Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [1160, 440]
+    },
+    {
+      "parameters": {
         "chatId": "={{ $('Telegram Trigger: Mensaje Entrante').first().json.message.chat.id }}",
-        "text": "={{ $json.texto_respuesta }}",
+        "text": "={{ $json.output }}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
-      "id": "node-tg-reply-schedule",
-      "name": "Telegram: Responder Agenda",
+      "id": "node-tg-reply-copilot",
+      "name": "Telegram: Responder a Andrés",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1160, 240],
+      "position": [1400, 240],
       "credentials": {
         "telegramApi": {
           "id": "cred-telegram-andres",
@@ -94,7 +122,7 @@
     {
       "parameters": {
         "chatId": "={{ $json.message.chat.id }}",
-        "text": "⛔ *Acceso restringido.*\nEste bot es de uso exclusivo y confidencial para Andrés (Administrador de Andrés Peluquería).",
+        "text": "⛔ *Acceso restringido.*\nEste bot es de uso confidencial para el dueño y administrador de Andrés Peluquería.",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
@@ -128,7 +156,7 @@
       "main": [
         [
           {
-            "node": "DB: Consultar Citas de Hoy",
+            "node": "DB: Consultar Agenda Completa",
             "type": "main",
             "index": 0
           }
@@ -142,22 +170,44 @@
         ]
       ]
     },
-    "DB: Consultar Citas de Hoy": {
+    "DB: Consultar Agenda Completa": {
       "main": [
         [
           {
-            "node": "Formatear Agenda del Día",
+            "node": "Preparar Contexto Agenda & Pregunta",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Formatear Agenda del Día": {
+    "Preparar Contexto Agenda & Pregunta": {
       "main": [
         [
           {
-            "node": "Telegram: Responder Agenda",
+            "node": "AI Agent: Copiloto Ejecutivo Andrés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI / Gemini / DeepSeek Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Copiloto Ejecutivo Andrés",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Copiloto Ejecutivo Andrés": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Responder a Andrés",
             "type": "main",
             "index": 0
           }
