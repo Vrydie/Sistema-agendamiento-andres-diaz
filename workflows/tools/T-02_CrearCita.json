@@ -83,7 +83,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO citas (cliente_id, servicio_id, fecha_inicio, fecha_fin, estado, notas)\nSELECT cl.id, $2::uuid, $3::timestamptz, $4::timestamptz, 'confirmada', 'Agendado por Asistente IA WhatsApp'\nFROM clientes cl\nWHERE cl.wa_id = $1\nRETURNING id, fecha_inicio, fecha_fin;",
+        "query": "INSERT INTO citas (cliente_id, servicio_id, fecha_inicio, fecha_fin, estado, notas)\nSELECT cl.id, $2::uuid, $3::timestamptz, $4::timestamptz, 'confirmada', 'Agendado por Asistente IA WhatsApp'\nFROM clientes cl\nWHERE replace(cl.wa_id, '+', '') = replace($1, '+', '')\nLIMIT 1\nRETURNING id, fecha_inicio, fecha_fin;",
         "options": {
           "queryReplacement": "={{ [$('Calcular Horas y Duración').first().json.wa_id, $('Calcular Horas y Duración').first().json.servicio_id, $('Calcular Horas y Duración').first().json.fecha_inicio, $('Calcular Horas y Duración').first().json.fecha_fin] }}"
         }
