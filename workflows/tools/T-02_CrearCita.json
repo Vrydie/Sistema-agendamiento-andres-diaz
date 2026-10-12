@@ -280,11 +280,63 @@
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {},
+          "value": {
+            "nombre_cliente": "={{ $('Calcular Horas y Duración').first().json.nombre_cliente }}",
+            "nombre_servicio": "={{ $('Calcular Horas y Duración').first().json.nombre_servicio }}",
+            "precio": "={{ $('Calcular Horas y Duración').first().json.precio }}",
+            "fecha_cita_formateada": "={{ $('Calcular Horas y Duración').first().json.fecha_cita_formateada }}",
+            "wa_id": "={{ $('Calcular Horas y Duración').first().json.wa_id }}"
+          },
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            {
+              "id": "nombre_cliente",
+              "displayName": "nombre_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "nombre_servicio",
+              "displayName": "nombre_servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "precio",
+              "displayName": "precio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "fecha_cita_formateada",
+              "displayName": "fecha_cita_formateada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "wa_id",
+              "displayName": "wa_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
           "attemptToConvertTypes": false,
-          "convertFieldsToString": true
+          "convertFieldsToString": false
         },
         "options": {}
       },
