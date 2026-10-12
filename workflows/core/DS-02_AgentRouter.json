@@ -57,9 +57,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT remitente, texto\nFROM mensajes\nWHERE conversacion_id = $1::uuid\nORDER BY creado_en DESC\nLIMIT 6;",
+        "query": "INSERT INTO mensajes (conversacion_id, remitente, texto)\nVALUES ($1::uuid, 'cliente', $2);\n\nSELECT COALESCE(\n  string_agg(\n    (CASE WHEN remitente = 'cliente' THEN 'Cliente: ' ELSE 'Valentina: ' END) || COALESCE(texto, ''),\n    E'\\n'\n    ORDER BY creado_en ASC\n  ),\n  'Sin historial previo'\n) AS historial_chat\nFROM (\n  SELECT remitente, texto, creado_en\n  FROM mensajes\n  WHERE conversacion_id = $1::uuid\n  ORDER BY creado_en DESC\n  LIMIT 8\n) sub;",
         "options": {
-          "queryReplacement": "={{ [$json.conversacion_id] }}"
+          "queryReplacement": "={{ [$json.conversacion_id, $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto] }}"
         }
       },
       "id": "node-db-get-memory",
@@ -72,9 +72,9 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Fecha y hora actual en Bogotá: {{ $now.setZone('America/Bogota').toFormat('yyyy-MM-dd HH:mm') }}\nWhatsApp del cliente: {{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}\n\nHISTORIAL RECIENTE DEL CHAT:\n{{ $('DB: Cargar Últimos 6 Mensajes').all().map(m => (m.json.remitente === 'cliente' ? 'Cliente' : 'Valentina') + ': ' + (m.json.texto || '')).reverse().join('\\n') }}\n\nNUEVO MENSAJE ENTRANTE DEL CLIENTE:\n{{ $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto }}",
+        "text": "=Fecha y hora actual en Bogotá: {{ $now.setZone('America/Bogota').toFormat('yyyy-MM-dd HH:mm') }}\nWhatsApp del cliente: {{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}\n\nHISTORIAL RECIENTE DEL CHAT:\n{{ $('DB: Cargar Últimos 6 Mensajes').first().json.historial_chat }}\n\nNUEVO MENSAJE ENTRANTE DEL CLIENTE:\n{{ $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto }}",
         "options": {
-          "systemMessage": "Eres Valentina, la recepcionista y asesora de imagen de Andrés Díaz - Tendencia en Peluquería (Cra 83 # 09, Bogotá/Colombia).\nTu misión es atender con calidez, elegancia, profesionalismo y fluidez natural humana.\n\nCATÁLOGO OFICIAL DE SERVICIOS:\n- Balayage Signature: Desde $180.000 COP (duración aprox. 3 a 4 horas).\n- Corte de Tendencia & Styling: $45.000 COP (45 a 60 min).\n- Terapia Nutritiva & Reparación: $70.000 COP (60 min).\n- Mantenimiento Gloss: $65.000 COP.\n\nHORARIOS DE ATENCIÓN:\n- Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n\nREGLAS DE CONVERSACIÓN NATURAL HUMANA (¡MUY IMPORTANTES!):\n1. PROHIBIDO REPETIR SALUDOS: Di '¡Hola!' ÚNICAMENTE si este es el primer mensaje de la conversación. Si en el historial ya hubo mensajes previos, JAMÁS vuelvas a decir 'Hola' ni 'Hola de nuevo'. Responde directamente con agilidad (ej: '¡Excelente elección!', 'Perfecto', 'Con mucho gusto', 'Listo').\n2. MEMORIA DE SERVICIOS: Si en el historial el cliente ya dijo qué servicio busca (ej: 'corte', 'corte normal', 'balayage'), NUNCA le vuelvas a preguntar qué servicio desea agendar. Asume de inmediato ese servicio.\n3. GUÍA EXACTA AL CLIENTE: Cuando el cliente proponga una hora (ej: 'mañana a las 3'), no le hagas preguntas genéricas. Pídele con precisión solo el dato que falta: '¡Listo! Para apartar tu cupo de mañana a las 3:00 PM para tu corte, ¿me confirmas tu nombre completo?'.\n4. REGLA OBLIGATORIA DE RESERVA: En cuanto tengas nombre completo, servicio y fecha/hora, TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"agendar_cita\". ESTÁ TOTALMENTE PROHIBIDO confirmar la cita sin haber llamado a la herramienta. Solo cuando la herramienta devuelva éxito, confírmale la cita con calidez e indícale la dirección Cra 83 # 09.\n5. Si el cliente solicita hablar con Andrés o una persona, dile amablemente que dejas una nota para que Andrés se comunique en cuanto se desocupe.\n6. Sé concisa (máximo 2 a 3 oraciones por mensaje)."
+          "systemMessage": "Eres Valentina, recepcionista y asesora de Andrés Díaz - Tendencia en Peluquería (Cra 83 # 09, Bogotá).\nAtiendes con calidez, elegancia y un tono 100% natural humano.\n\nCATÁLOGO OFICIAL:\n- Corte de Tendencia & Styling: $45.000 COP (45 a 60 min). (Incluye si el cliente dice: 'peluquearme', 'motilarme', 'corte normal', 'corte de hombre', etc.)\n- Balayage Signature: Desde $180.000 COP (3 a 4 horas).\n- Terapia Nutritiva & Reparación: $70.000 COP (60 min).\n- Mantenimiento Gloss: $65.000 COP.\n\nHORARIO:\n- Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n\nREGLAS DE ORO CONVERSACIONALES (PROHIBIDO PARECER ROBOT):\n1. PROHIBIDO REPETIR SALUDOS: Di '¡Hola!' ÚNICAMENTE si este es el primerísimo mensaje de toda la conversación. Si en el historial ya hablaron, ESTÁ TOTALMENTE PROHIBIDO decir '¡Hola!', 'Hola Samuel' ni 'Hola de nuevo'. Responde directo al grano: '¡Perfecto!', 'Con mucho gusto', 'Listo', 'Excelente'.\n2. MEMORIA DE SERVICIO Y HORARIO: NUNCA vuelvas a preguntar un dato que ya se discutió. Si el cliente ya dijo 'quiero peluquearme' o 'corte', asume inmediatamente 'Corte de Tendencia & Styling ($45.000)'. Si propuso 'mañana a las 3', confirma ese horario sin volver a pedir servicios.\n3. RESPUESTA SOLO CON NOMBRE (CASO FRECUENTE Y CRÍTICO): Cuando tú hayas preguntado el nombre para apartar el cupo (ej: '¿Me confirmas tu nombre completo?'), el cliente casi siempre responderá ÚNICAMENTE su nombre y apellido (ej: 'Samuel vargas', 'Carlos Gómez').\nENTIÉNDELO DE INMEDIATO: Ése es su nombre completo.\nEn ese instante ya tienes los 3 datos requeridos:\n- Nombre: El nombre recibido (ej: Samuel Vargas).\n- Servicio: El acordado previamente (ej: Corte de Tendencia & Styling).\n- Fecha/Hora: La acordada previamente (ej: Mañana a las 3:00 PM / 15:00).\n¡NO hagas más preguntas ni vuelvas a saludar! LLAMA INMEDIATAMENTE a la herramienta \"agendar_cita\".\n4. AGENDAMIENTO OBLIGATORIO: Tan pronto tengas Nombre, Servicio y Fecha/Hora, TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"agendar_cita\". No confirmes la cita antes de que la herramienta devuelva éxito.\n5. Mensajes concisos: Máximo 2 a 3 oraciones por mensaje."
         }
       },
       "id": "node-ai-agent",
@@ -91,7 +91,7 @@
         }
       },
       "id": "node-llm-model",
-      "name": "OpenAI / Gemini / DeepSeek Model",
+      "name": "DeepSeek Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [1160, 440]
@@ -119,12 +119,38 @@
     },
     {
       "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-wa-id",
+              "name": "wa_id",
+              "value": "={{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-texto",
+              "name": "texto",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-wa-id",
+      "name": "wa_id",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1420, 240]
+    },
+    {
+      "parameters": {
         "workflowId": "DS-03_MessageOut",
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "wa_id": "={{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}",
-            "texto": "={{ $json.output }}"
+            "wa_id": "={{ $json.wa_id }}",
+            "texto": "={{ $json.texto }}"
           }
         },
         "options": {}
@@ -133,7 +159,7 @@
       "name": "Ejecutar DS-03_MessageOut",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
-      "position": [1540, 240]
+      "position": [1640, 240]
     }
   ],
   "connections": {
@@ -181,7 +207,7 @@
         ]
       ]
     },
-    "OpenAI / Gemini / DeepSeek Model": {
+    "DeepSeek Chat Model": {
       "ai_languageModel": [
         [
           {
@@ -204,6 +230,17 @@
       ]
     },
     "AI Agent: Valentina (Andrés Peluquería)": {
+      "main": [
+        [
+          {
+            "node": "wa_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "wa_id": {
       "main": [
         [
           {
