@@ -1,5 +1,4 @@
 {
-  "id": "wT03EscalaHuma01",
   "name": "T-03_EscalarHumano",
   "nodes": [
     {
@@ -9,13 +8,16 @@
       "id": "node-trigger-t03",
       "name": "Tool Trigger: Escalar a Humano",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1,
-      "position": [200, 300]
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        300
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE conversaciones c\nSET estado = 'pausada_humano', pausada_hasta = CURRENT_TIMESTAMP + INTERVAL '4 hours'\nFROM clientes cl\nWHERE c.cliente_id = cl.id AND cl.wa_id = $1 AND c.estado = 'activa'\nRETURNING c.id;",
+        "query": "UPDATE conversaciones c\nSET estado = 'pausada_humano', pausada_hasta = CURRENT_TIMESTAMP + INTERVAL '4 hours'\nFROM clientes cl\nWHERE c.cliente_id = cl.id \n  AND regexp_replace(cl.wa_id, '\\D', '', 'g') = regexp_replace($1, '\\D', '', 'g') \n  AND c.estado = 'activa'\nRETURNING c.id;",
         "options": {
           "queryReplacement": "={{ [$json.wa_id] }}"
         }
@@ -24,19 +26,69 @@
       "name": "DB: Pausar Bot 4 Horas",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [440, 300]
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const motivo = $('Tool Trigger: Escalar a Humano').first().json.motivo || 'Solicitud de atención personalizada';\nconst wa_id = $('Tool Trigger: Escalar a Humano').first().json.wa_id;\n\nreturn [{\n  json: {\n    exito: true,\n    mensaje: 'Comprendo perfectamente. Le he dejado una notificación directa a Andrés con tus mensajes para que te atienda personalmente en cuanto se desocupe.',\n    alerta_admin: `⚠️ ATENCIÓN: El cliente ${wa_id} solicitó hablar con una persona. Motivo: ${motivo}. Bot pausado.`\n  }\n}];"
+        "jsCode": "const triggerData = $('Tool Trigger: Escalar a Humano').first().json;\nconst motivo = triggerData.motivo || 'Solicitud de atención personalizada';\nconst wa_id = (triggerData.wa_id || '').toString().replace(/\\D/g, '');\n\nreturn [{\n  json: {\n    exito: true,\n    wa_id: wa_id,\n    motivo: motivo\n  }\n}];"
       },
       "id": "node-human-escalated",
-      "name": "Formatear Mensaje de Notificación",
+      "name": "Preparar Datos Alerta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "=5926139023",
+        "text": "=🚨 *¡SOLICITUD DE ATENCIÓN HUMANA!* 👤⚠️\n\nEl cliente ha solicitado hablar directamente contigo en WhatsApp. El bot de Valentina ha sido *pausado automáticamente por 4 horas* para este chat.\n\n📱 *WhatsApp:* +{{ $json.wa_id }}\n📝 *Motivo / Detalle:* {{ $json.motivo }}\n\n👉 [Toca aquí para responder al cliente](https://wa.me/{{ $json.wa_id }})",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "tg-alerta-escalamiento",
+      "name": "Telegram: Enviar Alerta a Andrés",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "telegramApi": {
+          "id": "ip1uLbMWnxO9XrUT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    exito: true,\n    mensaje_para_cliente: 'Comprendo perfectamente. Le he dejado un aviso directo a Andrés con tu solicitud para que te atienda personalmente tan pronto se desocupe del salón.',\n    estado_bot: 'pausado_4_horas'\n  }\n}];"
+      },
+      "id": "resp-final-herramienta",
+      "name": "Respuesta para Valentina",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        300
+      ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Tool Trigger: Escalar a Humano": {
       "main": [
@@ -53,12 +105,46 @@
       "main": [
         [
           {
-            "node": "Formatear Mensaje de Notificación",
+            "node": "Preparar Datos Alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Datos Alerta": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Enviar Alerta a Andrés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Enviar Alerta a Andrés": {
+      "main": [
+        [
+          {
+            "node": "Respuesta para Valentina",
             "type": "main",
             "index": 0
           }
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "t03-escalar-humano-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
+  },
+  "nodeGroups": [],
+  "tags": []
 }
