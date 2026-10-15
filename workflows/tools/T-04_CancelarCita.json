@@ -5,61 +5,39 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "trigger-cancelar-cita",
+      "id": "14dbe0f2-3280-42ca-bc9e-371d592c1759",
       "name": "Tool Trigger: Cancelar Cita",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.2,
       "position": [
-        -1088,
-        -288
+        1152,
+        -208
       ]
     },
     {
       "parameters": {
-        "operation": "readRows",
-        "documentId": {
-          "__rl": true,
-          "value": "1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk",
-          "mode": "list",
-          "cachedResultName": "AndresPDB",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "Hoja 1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit#gid=0"
-        },
-        "options": {}
+        "operation": "executeQuery",
+        "query": "SELECT * FROM cancelar_cita($1, $2, FALSE);",
+        "options": {
+          "queryReplacement": "={{ [$json.codigo || $json.ref || null, $json.wa_id || null] }}"
+        }
       },
-      "id": "sheets-read-citas",
-      "name": "Google Sheets: Leer Citas",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
+      "id": "5a1e7c42-9b3d-4f0a-8c26-1d7e9f3b2a60",
+      "name": "DB: Cancelar Cita Cliente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
       "position": [
-        -864,
-        -288
+        1376,
+        -208
       ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "nO3OdsbG8TNMXxZN",
-          "name": "Google Sheets account"
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
         }
       }
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $('Tool Trigger: Cancelar Cita').first().json;\nconst items = $input.all();\nconst targetWa = (input.wa_id || '').toString().replace(/\\D/g, '');\n\nfunction parseSheetDate(str) {\n  if (!str) return null;\n  str = str.toString().trim();\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(str)) {\n    const d = new Date(str);\n    return isNaN(d.getTime()) ? null : d;\n  }\n  const match = str.match(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})[,\\s]+(\\d{1,2}):(\\d{2})(?::(\\d{2}))?\\s*(am|pm|a\\.?\\s*m\\.?|p\\.?\\s*m\\.?)?/i);\n  if (match) {\n    let [_, d, m, y, hh, mm, ss, mer] = match;\n    let h = parseInt(hh);\n    if (mer) {\n      const cleanMer = mer.toLowerCase().replace(/[\\.\\s]/g, '');\n      if (cleanMer === 'pm' && h < 12) h += 12;\n      if (cleanMer === 'am' && h === 12) h = 0;\n    }\n    const isoStr = y + '-' + m.padStart(2, '0') + '-' + d.padStart(2, '0') + 'T' + String(h).padStart(2, '0') + ':' + mm + ':00-05:00';\n    const dObj = new Date(isoStr);\n    if (!isNaN(dObj.getTime())) return dObj;\n  }\n  const fallback = new Date(str);\n  return isNaN(fallback.getTime()) ? null : fallback;\n}\n\n// 1. Buscar de abajo hacia arriba la cita confirmada del cliente\nlet citaEncontrada = null;\nfor (let i = items.length - 1; i >= 0; i--) {\n  const row = items[i].json;\n  if (!row) continue;\n  const rowWa = (row['WhatsApp'] || '').toString().replace(/\\D/g, '');\n  const estado = (row['Estado'] || 'confirmada').toString().trim().toLowerCase();\n  \n  const waMatch = (rowWa === targetWa || (rowWa.length >= 10 && targetWa.length >= 10 && rowWa.slice(-10) === targetWa.slice(-10)));\n  if (waMatch && estado === 'confirmada') {\n    citaEncontrada = row;\n    break;\n  }\n}\n\n// 2. Si no encontró por WhatsApp exacto, tomar la cita confirmada más reciente\nif (!citaEncontrada) {\n  for (let i = items.length - 1; i >= 0; i--) {\n    const row = items[i].json;\n    if (!row) continue;\n    const estado = (row['Estado'] || 'confirmada').toString().trim().toLowerCase();\n    if (estado === 'confirmada') {\n      citaEncontrada = row;\n      break;\n    }\n  }\n}\n\nif (!citaEncontrada) {\n  return [{\n    json: {\n      puede_cancelar: false,\n      motivo: 'no_encontrada',\n      mensaje: 'No encontré ninguna cita activa confirmada en nuestra agenda para cancelar. Si crees que se trata de un error, con gusto le aviso a Andrés.'\n    }\n  }];\n}\n\nconst rawFecha = citaEncontrada['Fecha Cita'] || '';\nconst fechaCita = parseSheetDate(rawFecha);\nconst ahora = new Date();\nconst fechaRegistro = (citaEncontrada['Fecha Registro'] || '').toString().trim();\n\nif (!fechaCita) {\n  return [{\n    json: {\n      puede_cancelar: true,\n      fecha_registro: fechaRegistro,\n      cliente: citaEncontrada['Nombre Cliente'] || 'Cliente',\n      wa_id: (citaEncontrada['WhatsApp'] || targetWa).toString().trim(),\n      servicio: citaEncontrada['Servicio'] || 'Servicio',\n      fecha_cita: rawFecha.toString().trim(),\n      precio: citaEncontrada['Precio COP'] || 45000\n    }\n  }];\n}\n\nconst diffHoras = (fechaCita - ahora) / (1000 * 60 * 60);\n\n// Regla de negocio: mínimo 2 horas de anticipación\nif (diffHoras >= 0 && diffHoras < 2) {\n  return [{\n    json: {\n      puede_cancelar: false,\n      motivo: 'menos_de_2_horas',\n      horas_restantes: diffHoras.toFixed(1),\n      mensaje: 'Por políticas de Andrés Peluquería, las cancelaciones automáticas deben realizarse con un mínimo de 2 horas de anticipación. Como faltan menos de 2 horas para tu cita, por favor comunícate directamente con Andrés para revisar tu caso.'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    puede_cancelar: true,\n    fecha_registro: fechaRegistro,\n    cliente: citaEncontrada['Nombre Cliente'] || 'Cliente',\n    wa_id: (citaEncontrada['WhatsApp'] || targetWa).toString().trim(),\n    servicio: citaEncontrada['Servicio'] || 'Servicio',\n    fecha_cita: rawFecha.toString().trim(),\n    precio: citaEncontrada['Precio COP'] || 45000\n  }\n}];"
-      },
-      "id": "code-validar-cancelacion",
-      "name": "Code: Validar Tiempo y Buscar Cita",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -640,
-        -288
-      ]
     },
     {
       "parameters": {
@@ -67,16 +45,16 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict",
+            "typeValidation": "loose",
             "version": 1
           },
           "conditions": [
             {
-              "id": "check-can-cancel",
-              "leftValue": "={{ $json.puede_cancelar }}",
-              "rightValue": true,
+              "id": "check-cita-cancelada",
+              "leftValue": "={{ $json.out_codigo || '' }}",
+              "rightValue": "CANCELADA",
               "operator": {
-                "type": "boolean",
+                "type": "string",
                 "operation": "equals"
               }
             }
@@ -85,13 +63,13 @@
         },
         "options": {}
       },
-      "id": "if-can-cancel",
-      "name": "¿Puede Cancelar? (>= 2h)",
+      "id": "32737503-1829-424d-b348-1064adb7dacd",
+      "name": "¿Se Canceló en BD?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -416,
-        -288
+        1600,
+        -208
       ]
     },
     {
@@ -114,16 +92,16 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Fecha Registro": "={{ $json.fecha_registro }}",
+            "ID Cita": "={{ $('DB: Cancelar Cita Cliente').first().json.out_cita_id }}",
             "Estado": "Cancelada"
           },
           "matchingColumns": [
-            "Fecha Registro"
+            "ID Cita"
           ],
           "schema": [
             {
-              "id": "Fecha Registro",
-              "displayName": "Fecha Registro",
+              "id": "ID Cita",
+              "displayName": "ID Cita",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -139,18 +117,21 @@
               "type": "string",
               "canBeUsedToMatch": true
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
-      "id": "sheets-update-cancelada",
+      "id": "b7022fe1-e2cd-4dee-9bb2-7fbf491c0d80",
       "name": "Google Sheets: Marcar Cancelada",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        -160,
-        -384
+        1840,
+        -304
       ],
+      "onError": "continueRegularOutput",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "nO3OdsbG8TNMXxZN",
@@ -160,77 +141,53 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE citas\nSET estado = 'cancelada', actualizada_en = CURRENT_TIMESTAMP\nWHERE cliente_id IN (\n  SELECT id FROM clientes WHERE regexp_replace(wa_id, '\\D', '', 'g') = regexp_replace($1, '\\D', '', 'g')\n)\nAND estado ILIKE 'confirmada';\n",
-        "options": {
-          "queryReplacement": "={{ [$('Code: Validar Tiempo y Buscar Cita').first().json.wa_id] }}"
-        }
-      },
-      "id": "db-update-cancelada",
-      "name": "DB: Actualizar Cita a Cancelada",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        80,
-        -384
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput",
-      "credentials": {
-        "postgres": {
-          "id": "EppjWtl0P6ZXP0fh",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "chatId": "=5926139023",
-        "text": "=🚨 *¡CITA CANCELADA POR EL CLIENTE!* 🚨\n\n👤 *Cliente:* {{ $('Code: Validar Tiempo y Buscar Cita').first().json.cliente }}\n💇 *Servicio:* {{ $('Code: Validar Tiempo y Buscar Cita').first().json.servicio }}\n⏰ *Horario liberado:* {{ $('Code: Validar Tiempo y Buscar Cita').first().json.fecha_cita }}\n💰 *Valor:* ${{ Number($('Code: Validar Tiempo y Buscar Cita').first().json.precio || 45000).toLocaleString('es-CO') }} COP\n\n📱 *WhatsApp:* +{{ $('Code: Validar Tiempo y Buscar Cita').first().json.wa_id }}\n👉 [Toca aquí para escribirle al cliente](https://wa.me/{{ $('Code: Validar Tiempo y Buscar Cita').first().json.wa_id }})\n\n✨ *Este cupo vuelve a estar 100% libre en tu agenda.*",
+        "text": "=🚨 *¡CITA CANCELADA POR EL CLIENTE!* 🚨\n\n👤 *Cliente:* {{ $('DB: Cancelar Cita Cliente').first().json.out_cliente_nombre }}\n💇 *Servicio:* {{ $('DB: Cancelar Cita Cliente').first().json.out_servicio_nombre }}\n⏰ *Horario liberado:* {{ new Date($('DB: Cancelar Cita Cliente').first().json.out_fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) }}\n💰 *Valor:* ${{ Number($('DB: Cancelar Cita Cliente').first().json.out_precio || 45000).toLocaleString('es-CO') }} COP\n\n📱 *WhatsApp:* +{{ $('DB: Cancelar Cita Cliente').first().json.out_wa_id }}\n👉 [Toca aquí para escribirle al cliente](https://wa.me/{{ $('DB: Cancelar Cita Cliente').first().json.out_wa_id }})\n\n✨ *Este cupo vuelve a estar 100% libre en tu agenda.*",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
-      "id": "tg-alert-cancelacion",
+      "id": "981f754b-89f3-4778-9b16-95b6f1cc11a6",
       "name": "Telegram: Alerta Cancelación a Andrés",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        320,
-        -384
+        2080,
+        -304
       ],
-      "onError": "continueRegularOutput",
+      "webhookId": "3f99646a-15e2-4e95-b847-13be0046f26a",
       "credentials": {
         "telegramApi": {
           "id": "ip1uLbMWnxO9XrUT",
           "name": "Telegram account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "const info = $('Code: Validar Tiempo y Buscar Cita').first().json;\n\nreturn [{\n  json: {\n    resultado: 'cancelacion_exitosa',\n    cancelada: true,\n    mensaje_para_cliente: `Listo, ${info.cliente}. Tu cita para ${info.servicio} del ${info.fecha_cita} ha quedado cancelada exitosamente. El cupo ya fue liberado en la agenda. Si más adelante deseas agendar de nuevo, me escribes con gusto. ¡Feliz día!`\n  }\n}];"
+        "jsCode": "const info = $('DB: Cancelar Cita Cliente').first().json;\n\nconst fecha = new Date(info.out_fecha_inicio).toLocaleString('es-CO', {\n  weekday: 'long', day: 'numeric', month: 'long',\n  hour: 'numeric', minute: '2-digit', hour12: true,\n  timeZone: 'America/Bogota'\n});\n\nconst restantes = Number(info.out_citas_restantes || 0);\nconst extra = restantes > 0\n  ? ` Aún tienes ${restantes} cita(s) más agendada(s); si quieres cancelar otra, dímelo.`\n  : '';\n\nreturn [{\n  json: {\n    resultado: 'cancelacion_exitosa',\n    cancelada: true,\n    mensaje_para_cliente: `Listo, ${info.out_cliente_nombre}. Tu cita para ${info.out_servicio_nombre} del ${fecha} ha quedado cancelada exitosamente. El cupo ya fue liberado en la agenda.${extra} Si más adelante deseas agendar de nuevo, me escribes con gusto. ¡Feliz día!`\n  }\n}];"
       },
-      "id": "response-success-cancel",
+      "id": "92d7d9b6-d7e6-442f-82d5-828a2f09612d",
       "name": "Respuesta Éxito Cancelación",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        560,
-        -384
+        2320,
+        -304
       ]
     },
     {
       "parameters": {
-        "jsCode": "const info = $('Code: Validar Tiempo y Buscar Cita').first().json;\n\nreturn [{\n  json: {\n    resultado: 'cancelacion_no_permitida',\n    cancelada: false,\n    motivo: info.motivo,\n    mensaje_para_cliente: info.mensaje\n  }\n}];"
+        "jsCode": "const r = $input.first().json;\nconst codigo = r.out_codigo || 'ERROR_TECNICO';\n\nif (codigo === 'ERROR_TECNICO') {\n  return [{\n    json: {\n      resultado: 'cancelacion_no_permitida',\n      cancelada: false,\n      motivo: codigo,\n      mensaje_para_cliente: 'Tuve un inconveniente técnico al intentar cancelar tu cita. Ya le avisé a Andrés para que la cancele contigo directamente.',\n      instruccion_agente: 'Fallo técnico. NO digas que la cita fue cancelada. Llama escalar_humano y comunica mensaje_para_cliente.'\n    }\n  }];\n}\n\nif (codigo === 'YA_CANCELADA') {\n  return [{\n    json: {\n      resultado: 'cancelacion_exitosa',\n      cancelada: true,\n      mensaje_para_cliente: 'Esa cita ya estaba cancelada. No tienes que hacer nada más.'\n    }\n  }];\n}\n\nif (codigo === 'REFERENCIA_REQUERIDA' || codigo === 'NO_ENCONTRADA') {\n  return [{\n    json: {\n      resultado: 'cancelacion_no_permitida',\n      cancelada: false,\n      motivo: codigo,\n      mensaje_para_cliente: 'No encontré ninguna cita activa agendada con tu número para cancelar. Si crees que se trata de un error o reservaste con otro número, avísame y con gusto le dejo una notificación a Andrés.',\n      instruccion_agente: 'NO le pidas un código de cita al cliente. Si el cliente insiste en que tiene una cita, llama escalar_humano.'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    resultado: 'cancelacion_no_permitida',\n    cancelada: false,\n    motivo: codigo,\n    mensaje_para_cliente: r.out_mensaje\n  }\n}];"
       },
-      "id": "response-fail-cancel",
+      "id": "ff966558-62c5-434a-ad40-ab53523cc52b",
       "name": "Respuesta Rechazo Cancelación",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -160,
-        -192
+        1840,
+        -112
       ]
     }
   ],
@@ -240,36 +197,25 @@
       "main": [
         [
           {
-            "node": "Google Sheets: Leer Citas",
+            "node": "DB: Cancelar Cita Cliente",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Google Sheets: Leer Citas": {
+    "DB: Cancelar Cita Cliente": {
       "main": [
         [
           {
-            "node": "Code: Validar Tiempo y Buscar Cita",
+            "node": "¿Se Canceló en BD?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code: Validar Tiempo y Buscar Cita": {
-      "main": [
-        [
-          {
-            "node": "¿Puede Cancelar? (>= 2h)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "¿Puede Cancelar? (>= 2h)": {
+    "¿Se Canceló en BD?": {
       "main": [
         [
           {
@@ -288,17 +234,6 @@
       ]
     },
     "Google Sheets: Marcar Cancelada": {
-      "main": [
-        [
-          {
-            "node": "DB: Actualizar Cita a Cancelada",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "DB: Actualizar Cita a Cancelada": {
       "main": [
         [
           {
@@ -325,5 +260,12 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
-  }
+  },
+  "versionId": "649c1035-965e-4131-a442-ce6c281b405e",
+  "meta": {
+    "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
+  },
+  "nodeGroups": [],
+  "id": "7jlOKX550Zo0Znl2",
+  "tags": []
 }

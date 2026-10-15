@@ -66,28 +66,29 @@ RETURNS TABLE (
     mensajes_agrupados TEXT,
     total_mensajes INT
 ) AS $$
-DECLARE
-    v_texto_unificado TEXT;
-    v_conteo INT;
 BEGIN
-    -- Concatenar mensajes pendientes
-    SELECT 
-        string_agg(texto, E'\n' ORDER BY recibido_en ASC),
-        count(*)
-    INTO 
-        v_texto_unificado,
-        v_conteo
-    FROM cola_mensajes_debounce
-    WHERE wa_id = p_wa_id AND procesado = FALSE;
+    -- Bloqueo pesimista por wa_id para serializar ejecuciones concurrentes del mismo cliente
+    PERFORM pg_advisory_xact_lock(hashtext(p_wa_id));
 
-    -- Marcar como procesados atómicamente
-    IF v_conteo > 0 THEN
-        UPDATE cola_mensajes_debounce
+    RETURN QUERY
+    WITH pendientes AS (
+        SELECT id, texto, recibido_en
+        FROM cola_mensajes_debounce
+        WHERE wa_id = p_wa_id AND procesado = FALSE
+        ORDER BY recibido_en ASC
+        FOR UPDATE SKIP LOCKED
+    ),
+    actualizados AS (
+        UPDATE cola_mensajes_debounce c
         SET procesado = TRUE
-        WHERE wa_id = p_wa_id AND procesado = FALSE;
-    END IF;
-
-    RETURN QUERY SELECT v_texto_unificado, v_conteo;
+        FROM pendientes p
+        WHERE c.id = p.id
+        RETURNING c.texto, c.recibido_en
+    )
+    SELECT 
+        string_agg(texto, E'\n' ORDER BY recibido_en ASC) AS mensajes_agrupados,
+        count(*)::INT AS total_mensajes
+    FROM actualizados;
 END;
 $$ LANGUAGE plpgsql;
 

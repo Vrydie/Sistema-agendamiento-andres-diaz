@@ -1,0 +1,208 @@
+{
+  "name": "C-02_SyncSheetsAPostgres",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/5 7-21 * * 1-6"
+            }
+          ]
+        }
+      },
+      "id": "c02-schedule-trigger",
+      "name": "Cron: Cada 5 Minutos (Horario Laboral)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk",
+          "mode": "list",
+          "cachedResultName": "AndresPDB",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "c02-read-sheets",
+      "name": "Google Sheets: Leer Filas",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "nO3OdsbG8TNMXxZN",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ci.id, to_char(ci.fecha_inicio AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD HH24:MI') AS fecha_inicio_bogota, ci.fecha_inicio, s.nombre AS servicio, COALESCE(NULLIF(trim(substring(ci.notas from 'Titular: ([^|]*)')), ''), cl.nombre) AS cliente, cl.wa_id\nFROM citas ci\nJOIN servicios s ON s.id = ci.servicio_id\nJOIN clientes cl ON cl.id = ci.cliente_id\nWHERE ci.estado = 'confirmada'\n  AND ci.fecha_fin > NOW()\n  AND ci.creada_en < NOW() - INTERVAL '3 minutes';",
+        "options": {}
+      },
+      "id": "c02-read-postgres",
+      "name": "DB: Citas Confirmadas Activas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sheetsRows = $('Google Sheets: Leer Filas').all().map(i => i.json);\nconst dbCitas = $('DB: Citas Confirmadas Activas').all().map(i => i.json);\n\n// GUARDA CRÍTICA ANTI-BORRADO: Si Sheets no respondió o devolvió error, abortar\nif (!Array.isArray(sheetsRows) || sheetsRows.length === 0) {\n  return [];\n}\nconst primerElemento = sheetsRows[0];\nif (primerElemento.error || primerElemento.errorMessage || !('ID Cita' in primerElemento)) {\n  return [];\n}\n\n// Mapear filas de sheets por ID Cita\nconst sheetsMap = new Map();\nfor (const row of sheetsRows) {\n  const rawId = (row['ID Cita'] || '').trim().toLowerCase();\n  if (rawId) {\n    sheetsMap.set(rawId, row);\n  }\n}\n\nconst citasParaCancelar = [];\n\nfor (const cita of dbCitas) {\n  if (!cita.id) continue;\n  const citaId = cita.id.toLowerCase();\n  const sheetRow = sheetsMap.get(citaId);\n\n  if (!sheetRow) {\n    // Caso 1: La fila fue eliminada/borrada completamente de Google Sheets\n    citasParaCancelar.push({\n      json: {\n        cita_id: cita.id,\n        cliente: cita.cliente,\n        servicio: cita.servicio,\n        fecha_inicio: cita.fecha_inicio,\n        fecha_inicio_bogota: cita.fecha_inicio_bogota,\n        motivo_sync: 'Fila eliminada de Google Sheets'\n      }\n    });\n  } else {\n    const estadoSheet = (sheetRow['Estado'] || '').trim().toLowerCase();\n    if (estadoSheet.startsWith('cancel')) {\n      // Caso 2: La celda Estado fue cambiada a Cancelada\n      citasParaCancelar.push({\n        json: {\n          cita_id: cita.id,\n          cliente: cita.cliente,\n          servicio: cita.servicio,\n          fecha_inicio: cita.fecha_inicio,\n          fecha_inicio_bogota: cita.fecha_inicio_bogota,\n          motivo_sync: 'Marcada como Cancelada en Google Sheets'\n        }\n      });\n    }\n  }\n}\n\nreturn citasParaCancelar;"
+      },
+      "id": "c02-compare-code",
+      "name": "Code: Comparar Sheets vs Postgres",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM cancelar_cita($1, NULL, TRUE);",
+        "options": {
+          "queryReplacement": "={{ [$json.cita_id] }}"
+        }
+      },
+      "id": "c02-cancel-db",
+      "name": "DB: Cancelar Cita Atómica",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        940,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "5926139023",
+        "text": "=📋 *¡SINCRONIZACIÓN GOOGLE SHEETS ➔ AGENDA!* ✨\n\nSe detectó un cambio directo en tu hoja de cálculo:\n👤 *Cliente:* {{ $json.out_cliente_nombre }}\n💇 *Servicio:* {{ $json.out_servicio_nombre }}\n⏰ *Horario:* {{ new Date($json.out_fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) }}\n\n✅ *El cupo fue liberado automáticamente en PostgreSQL.*",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c02-telegram-alert",
+      "name": "Telegram: Alerta Sincronización a Andrés",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1180,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "ip1uLbMWnxO9XrUT",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Cron: Cada 5 Minutos (Horario Laboral)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Leer Filas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "DB: Citas Confirmadas Activas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Leer Filas": {
+      "main": [
+        [
+          {
+            "node": "Code: Comparar Sheets vs Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Citas Confirmadas Activas": {
+      "main": [
+        [
+          {
+            "node": "Code: Comparar Sheets vs Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Comparar Sheets vs Postgres": {
+      "main": [
+        [
+          {
+            "node": "DB: Cancelar Cita Atómica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Cancelar Cita Atómica": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Alerta Sincronización a Andrés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

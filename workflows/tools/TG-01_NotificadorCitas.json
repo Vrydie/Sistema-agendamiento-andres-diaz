@@ -17,7 +17,7 @@
     {
       "parameters": {
         "chatId": "=5926139023",
-        "text": "=🔔 *¡NUEVA CITA CONFIRMADA EN EL SALÓN!* 💇✨\n\n👤 *Cliente:* {{ $json.nombre_cliente }}\n💇 *Servicio:* {{ $json.nombre_servicio }}\n💰 *Valor:* ${{ Number($json.precio || 45000).toLocaleString('es-CO') }} COP\n⏰ *Cita:* {{ $json.fecha_cita_formateada }}\n📍 *Sede:* Cra 83 # 09, Bogotá\n\n📱 *WhatsApp:* +{{ $json.wa_id }}\n👉 [Toca aquí para chatear con el cliente](https://wa.me/{{ $json.wa_id }})",
+        "text": "=🔔 *¡NUEVA CITA CONFIRMADA EN EL SALÓN!* 💇✨\n\n👤 *Cliente:* {{ $json.nombre_cliente }}\n💇 *Servicio:* {{ $json.nombre_servicio }}\n💰 *Valor:* ${{ Number($json.precio || 45000).toLocaleString('es-CO') }} COP\n⏰ *Cita:* {{ $json.fecha_cita_formateada }}\n📍 *Sede:* Cra 83 # 09, Bogotá\n\n📱 *WhatsApp:* +{{ $json.wa_id }}\n👉 [Toca aquí para chatear con el cliente](https://wa.me/{{ $json.wa_id }})\n\n❌ *Para cancelar toca:* `/cancelar #{{ ($json.cita_id || '').slice(0, 8) }}`",
         "additionalFields": {
           "parse_mode": "Markdown"
         }

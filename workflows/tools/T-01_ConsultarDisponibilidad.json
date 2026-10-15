@@ -9,29 +9,37 @@
       "id": "node-trigger-t01",
       "name": "Tool Trigger: Consultar Disponibilidad",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [200, 300]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT s.nombre, s.duracion_minutos, s.precio_base_cop\nFROM servicios s\nWHERE s.codigo = $1 OR s.nombre ILIKE '%' || $1 || '%'\nLIMIT 1;",
+        "query": "WITH srv AS (\n  SELECT * FROM resolver_servicio($2) LIMIT 1\n),\nfecha_valida AS (\n  SELECT CASE\n    WHEN $1 ~ '^\\d{4}-\\d{2}-\\d{2}$' THEN $1::date\n    WHEN $1 ~* 'mañana' THEN ((now() AT TIME ZONE 'America/Bogota')::date + INTERVAL '1 day')::date\n    ELSE (now() AT TIME ZONE 'America/Bogota')::date\n  END AS f\n),\nslots AS (\n  SELECT d.slot_inicio\n  FROM srv, fecha_valida fv,\n  LATERAL consultar_disponibilidad(fv.f, srv.duracion_minutos) d\n)\nSELECT\n  (SELECT nombre FROM srv) AS servicio,\n  (SELECT duracion_minutos FROM srv) AS duracion_minutos,\n  (SELECT to_char(f, 'YYYY-MM-DD') FROM fecha_valida) AS fecha_consultada,\n  COALESCE((SELECT string_agg(to_char(slot_inicio AT TIME ZONE 'America/Bogota', 'HH24:MI'), ',' ORDER BY slot_inicio) FROM slots), '') AS slots_24h;",
         "options": {
-          "queryReplacement": "={{ [$json.servicio || 'balayage_signature'] }}"
+          "queryReplacement": "={{ [$json.fecha || '', $json.servicio || ''] }}"
         }
       },
-      "id": "node-db-get-service",
-      "name": "DB: Obtener Duración Servicio",
+      "id": "node-db-get-slots",
+      "name": "DB: Consultar Horarios Libres",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [440, 300]
+      "position": [440, 300],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "// Generar bloques de horario disponibles para la fecha solicitada\nconst fecha = $('Tool Trigger: Consultar Disponibilidad').first().json.fecha || new Date().toISOString().split('T')[0];\nconst duracion = $input.first().json.duracion_minutos || 60;\nconst nombreServicio = $input.first().json.nombre || 'Servicio';\n\n// Simulación inteligente de slots (en producción se cruza con Google Calendar API)\nconst slotsDisponibles = [\n  `${fecha} 09:30:00`,\n  `${fecha} 11:45:00`,\n  `${fecha} 15:00:00`,\n  `${fecha} 17:30:00`\n];\n\nreturn [{\n  json: {\n    servicio: nombreServicio,\n    duracion_minutos: duracion,\n    fecha_consultada: fecha,\n    horarios_disponibles: slotsDisponibles,\n    mensaje_sugerido: `Tenemos disponibilidad para ${nombreServicio} el ${fecha} a las: 9:30 AM, 11:45 AM, 3:00 PM y 5:30 PM.`\n  }\n}];"
+        "jsCode": "const r = $input.first().json;\n\n// Fallo de BD: nunca dejar al LLM sin respuesta ni inventar disponibilidad\nif (r.error || !r.fecha_consultada) {\n  return [{ json: {\n    exito: false,\n    codigo: 'ERROR_TECNICO',\n    mensaje: 'No se pudo consultar la agenda.',\n    instruccion_agente: 'NO afirmes ni niegues disponibilidad. Discúlpate, dile al cliente que revisarás y llama escalar_humano.'\n  } }];\n}\n\nif (!r.servicio) {\n  return [{ json: {\n    exito: false,\n    codigo: 'SERVICIO_NO_ENCONTRADO',\n    mensaje: 'No se reconoció el servicio.',\n    instruccion_agente: 'Pregunta al cliente qué servicio desea del catálogo y vuelve a consultar con el código correcto.'\n  } }];\n}\n\nconst h12 = (hhmm) => {\n  let [h, m] = hhmm.split(':').map(Number);\n  const suf = h >= 12 ? 'PM' : 'AM';\n  h = h % 12 || 12;\n  return `${h}:${String(m).padStart(2, '0')} ${suf}`;\n};\n\nconst slots = r.slots_24h ? r.slots_24h.split(',').map(h12) : [];\n\nreturn [{\n  json: {\n    exito: true,\n    servicio: r.servicio,\n    duracion_minutos: r.duracion_minutos,\n    fecha_consultada: r.fecha_consultada,\n    horarios_disponibles: slots,\n    instruccion_agente: slots.length\n      ? 'Estos son los ÚNICOS horarios libres (inicio del servicio). Si la hora pedida no está en la lista, di que no está libre y ofrece los 2-3 más cercanos. No inventes otros.'\n      : 'No hay cupos ese día (domingo, fecha pasada, cerrado o agenda llena). Ofrece otro día.'\n  }\n}];"
       },
-      "id": "node-calc-slots",
-      "name": "Calcular Horarios Libres",
+      "id": "node-format-slots",
+      "name": "Formatear Horarios Libres",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [680, 300]
@@ -42,23 +50,28 @@
       "main": [
         [
           {
-            "node": "DB: Obtener Duración Servicio",
+            "node": "DB: Consultar Horarios Libres",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "DB: Obtener Duración Servicio": {
+    "DB: Consultar Horarios Libres": {
       "main": [
         [
           {
-            "node": "Calcular Horarios Libres",
+            "node": "Formatear Horarios Libres",
             "type": "main",
             "index": 0
           }
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
 }

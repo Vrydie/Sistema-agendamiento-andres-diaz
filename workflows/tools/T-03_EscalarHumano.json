@@ -5,13 +5,13 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "node-trigger-t03",
+      "id": "71f84698-b907-4124-8cf5-8905e6c50db9",
       "name": "Tool Trigger: Escalar a Humano",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        200,
-        300
+        0,
+        0
       ]
     },
     {
@@ -22,13 +22,13 @@
           "queryReplacement": "={{ [$json.wa_id] }}"
         }
       },
-      "id": "node-db-pause-bot",
+      "id": "a7f2b6db-8e05-4567-a9f1-c11634deeb93",
       "name": "DB: Pausar Bot 4 Horas",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        440,
-        300
+        240,
+        0
       ],
       "credentials": {
         "postgres": {
@@ -41,13 +41,13 @@
       "parameters": {
         "jsCode": "const triggerData = $('Tool Trigger: Escalar a Humano').first().json;\nconst motivo = triggerData.motivo || 'Solicitud de atención personalizada';\nconst wa_id = (triggerData.wa_id || '').toString().replace(/\\D/g, '');\n\nreturn [{\n  json: {\n    exito: true,\n    wa_id: wa_id,\n    motivo: motivo\n  }\n}];"
       },
-      "id": "node-human-escalated",
+      "id": "430f2251-7e1b-4c80-87ca-513bb0b257bd",
       "name": "Preparar Datos Alerta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        680,
-        300
+        480,
+        0
       ]
     },
     {
@@ -58,33 +58,34 @@
           "parse_mode": "Markdown"
         }
       },
-      "id": "tg-alerta-escalamiento",
+      "id": "954fdc04-be32-4b6d-8cdc-f56c67742a57",
       "name": "Telegram: Enviar Alerta a Andrés",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        920,
-        300
+        720,
+        0
       ],
-      "onError": "continueRegularOutput",
+      "webhookId": "b4736885-5ef7-4903-a4b8-4684f252f521",
       "credentials": {
         "telegramApi": {
           "id": "ip1uLbMWnxO9XrUT",
           "name": "Telegram account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "return [{\n  json: {\n    exito: true,\n    mensaje_para_cliente: 'Comprendo perfectamente. Le he dejado un aviso directo a Andrés con tu solicitud para que te atienda personalmente tan pronto se desocupe del salón.',\n    estado_bot: 'pausado_4_horas'\n  }\n}];"
       },
-      "id": "resp-final-herramienta",
+      "id": "98d9d4c1-14e5-446f-9d4a-905d851bf6fd",
       "name": "Respuesta para Valentina",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1160,
-        300
+        960,
+        0
       ]
     }
   ],
@@ -140,11 +141,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "t03-escalar-humano-v1",
+  "versionId": "b0ff0919-9879-4cb3-9098-770651e34910",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
   },
   "nodeGroups": [],
+  "id": "JdFmMdDU0jQNgACT",
   "tags": []
 }

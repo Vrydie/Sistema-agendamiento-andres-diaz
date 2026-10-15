@@ -2,31 +2,83 @@
   "name": "DS-02_AgentRouter",
   "nodes": [
     {
+      "parameters": {
+        "description": "Consulta la agenda REAL en la base de datos y devuelve los horarios libres de un día para un servicio. Úsala SIEMPRE antes de afirmar o negar que hay espacio y antes de pedir el nombre para agendar.",
+        "workflowId": {
+          "__rl": true,
+          "value": "hlChkLEFQON4dvif",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/hlChkLEFQON4dvif",
+          "cachedResultName": "T-01_ConsultarDisponibilidad"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha": "={{ $fromAI('fecha', 'Fecha a consultar en formato YYYY-MM-DD. Si el cliente dice hoy, usa la fecha actual del contexto.', 'string') }}",
+            "servicio": "={{ $fromAI('servicio', 'Código del servicio: corte_styling, balayage_signature, terapia_reparacion o matiz_gloss', 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "servicio",
+              "displayName": "servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2352,
+        1936
+      ],
+      "id": "c3f1b8a2-6d4e-4a59-9b7c-1e2f3a4b5c6d",
+      "name": "consultar_disponibilidad"
+    },
+    {
       "parameters": {},
-      "id": "b75b394b-b4ba-4e8b-bbe4-f19d947810d2",
+      "id": "b719b2d5-8891-4f1a-8923-a6a3a934b19c",
       "name": "Trigger: Mensaje Consolidado",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
       "position": [
-        -720,
-        64
+        1328,
+        1680
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT c.id AS conversacion_id, c.estado, c.cliente_id\nFROM conversaciones c\nJOIN clientes cl ON cl.id = c.cliente_id\nWHERE cl.wa_id = $1\nORDER BY c.ultimo_mensaje_en DESC\nLIMIT 1;",
+        "query": "UPDATE conversaciones c\nSET estado = 'activa'\nFROM clientes cl\nWHERE c.cliente_id = cl.id\n  AND regexp_replace(cl.wa_id, '\\D', '', 'g') = regexp_replace($1, '\\D', '', 'g')\n  AND c.estado = 'pausada_humano';\n\nSELECT c.id AS conversacion_id, c.estado, c.cliente_id\nFROM conversaciones c\nJOIN clientes cl ON cl.id = c.cliente_id\nWHERE regexp_replace(cl.wa_id, '\\D', '', 'g') = regexp_replace($1, '\\D', '', 'g')\nORDER BY c.ultimo_mensaje_en DESC\nLIMIT 1;",
         "options": {
           "queryReplacement": "={{ [$json.wa_id] }}"
         }
       },
-      "id": "547fe3e3-fad0-4dac-81e6-0b69605cbfef",
+      "id": "9696f115-0471-40e8-b5c4-36236d6db970",
       "name": "DB: Consultar Estado Conversación",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -480,
-        64
+        1568,
+        1680
       ],
       "credentials": {
         "postgres": {
@@ -59,13 +111,13 @@
         },
         "options": {}
       },
-      "id": "a4d93214-58f7-418b-965d-6c17e3458ef9",
+      "id": "2d8525c3-7976-4828-928f-70ee157ade7f",
       "name": "¿Es Comando Reset?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -320,
-        64
+        1728,
+        1680
       ]
     },
     {
@@ -76,13 +128,13 @@
           "queryReplacement": "={{ [$('Trigger: Mensaje Consolidado').first().json.wa_id] }}"
         }
       },
-      "id": "f5120349-411a-45c1-9018-0a02ef497c28",
+      "id": "bffd400f-f5b0-46f2-8da0-8e7552b5ecec",
       "name": "DB: Reiniciar Memoria",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -100,
-        -180
+        1936,
+        1424
       ],
       "credentials": {
         "postgres": {
@@ -111,13 +163,13 @@
         },
         "options": {}
       },
-      "id": "e30e1892-0b2f-410a-81f1-799d14ea1ba2",
+      "id": "0a2e78bc-5beb-4225-b168-904a9062ae63",
       "name": "Set: Respuesta Reset",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        200,
-        -180
+        2240,
+        1424
       ]
     },
     {
@@ -144,13 +196,13 @@
         },
         "options": {}
       },
-      "id": "52dd599f-79ac-4e2f-9401-20ac9266af9c",
+      "id": "466422ef-15da-4131-ba33-572672b9c130",
       "name": "¿Bot Activo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -240,
-        64
+        1808,
+        1680
       ]
     },
     {
@@ -161,13 +213,13 @@
           "queryReplacement": "={{ [$json.conversacion_id, $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto] }}"
         }
       },
-      "id": "f353847f-dafb-406d-a34a-30be7aea8433",
+      "id": "46b7e7e9-5878-47f5-aa0f-9ef09608ba2c",
       "name": "DB: Cargar Últimos 6 Mensajes",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        0,
-        0
+        2048,
+        1616
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -182,16 +234,17 @@
         "promptType": "define",
         "text": "=Fecha y hora actual en Bogotá: {{ $now.setZone('America/Bogota').toFormat('yyyy-MM-dd HH:mm') }}\nWhatsApp del cliente: {{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}\n\nHISTORIAL RECIENTE DEL CHAT:\n{{ $('DB: Cargar Últimos 6 Mensajes').first().json.historial_chat }}\n\nNUEVO MENSAJE ENTRANTE DEL CLIENTE:\n{{ $('Trigger: Mensaje Consolidado').first().json.mensajes_agrupados || $('Trigger: Mensaje Consolidado').first().json.texto }}",
         "options": {
-          "systemMessage": "Eres Valentina, recepcionista y asesora de Andrés Díaz - Tendencia en Peluquería (Cra 83 # 09, Bogotá).\nAtiendes con calidez, elegancia y un tono 100% natural humano.\n\nCATÁLOGO OFICIAL:\n- Corte de Tendencia & Styling: $45.000 COP (45 a 60 min). (Aplica si dicen: 'peluquearme', 'motilarme', 'corte normal', 'corte de hombre', etc.)\n- Balayage Signature: Desde $180.000 COP (3 a 4 horas).\n- Terapia Nutritiva & Reparación: $70.000 COP (60 min).\n- Mantenimiento Gloss: $65.000 COP.\n\nHORARIO:\n- Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n\nREGLAS DE ORO CONVERSACIONALES (PROHIBIDO PARECER ROBOT):\n1. PROHIBIDO REPETIR SALUDOS: Di '¡Hola!' ÚNICAMENTE si este es el primerísimo mensaje de toda la conversación. Si en el historial ya hablaron, ESTÁ TOTALMENTE PROHIBIDO decir '¡Hola!', 'Hola Samuel' ni 'Hola de nuevo'. Responde directo al grano.\n2. MEMORIA DE CONTEXTO: NUNCA vuelvas a preguntar un dato que ya se discutió. Si el cliente ya dijo 'quiero peluquearme' o 'corte', asume inmediatamente 'Corte de Tendencia & Styling ($45.000)'. Si propuso 'mañana a las 10', confirma ese horario sin volver a pedir qué servicio quiere.\n3. RESPUESTA SOLO CON NOMBRE (REGLA DE UNICIDAD): Cuando hayas preguntado el nombre para apartar el cupo, el cliente responderá únicamente su nombre y apellido (ej: 'Jessica Beltrán').\n- El nombre recibido es el titular definitivo de la cita (un usuario puede estar reservando para otra persona como su pareja, hija o amiga). El nombre recién recibido REEMPLAZA cualquier nombre que haya aparecido antes en el chat.\n- NUNCA agregues etiquetas como 'Cliente: ...' en tus mensajes.\n- LLAMA EXACTAMENTE UNA SOLA VEZ a la herramienta \"agendar_cita\" usando el nombre recién enviado.\n- PROHIBIDO LLAMAR A \"agendar_cita\" MÚLTIPLES VECES: Nunca intentes agendar para dos personas a la vez ni llames la herramienta más de una vez en un mismo turno.\n4. AGENDAMIENTO OBLIGATORIO: Tan pronto tengas Nombre, Servicio y Fecha/Hora, TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"agendar_cita\". No confirmes la cita antes de que la herramienta devuelva éxito.\n5. CANCELACIÓN DE CITAS (POLÍTICA DE 2 HORAS): Si el cliente pide cancelar su cita ('quiero cancelar mi cita', 'no podré ir', etc.):\n- Si aún no ha confirmado, pídele confirmación rápida mencionando su cita (ej: '¿Me confirmas que deseas cancelar tu cita?').\n- Si ya confirmó (o responde 'sí', 'sí por favor', 'cancélala'): TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"cancelar_cita\".\n- NUNCA digas que la cita fue cancelada sin haber llamado y ejecutado la herramienta \"cancelar_cita\".\n- Cuando la herramienta devuelva respuesta, comunica al cliente EXACTAMENTE el texto provisto en 'mensaje_para_cliente'. NUNCA inventes que no pudiste completar la cancelación si la herramienta te devolvió un mensaje claro para el cliente.\n6. ESCALAMIENTO A HUMANO: Si el cliente pide hablar con una persona, con Andrés, o expresa una queja/inconformidad que no puedas resolver:\n- TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"escalar_humano\".\n- Cuando la herramienta devuelva respuesta, confirma al cliente con amabilidad que ya le dejaste una notificación directa a Andrés para que se comunique con él tan pronto se desocupe.\n7. Mensajes concisos: Máximo 2 a 3 oraciones por mensaje.\n"
+          "maxIterations": 5,
+          "systemMessage": "Eres Valentina, recepcionista y asesora de Andrés Díaz - Tendencia en Peluquería (Cra 83 # 09, Bogotá).\nAtiendes con calidez, elegancia y un tono 100% natural humano.\n\nCATÁLOGO OFICIAL:\n- Corte de Tendencia & Styling: $45.000 COP (45 a 60 min). (Aplica si dicen: 'peluquearme', 'motilarme', 'corte normal', 'corte de hombre', etc.)\n- Balayage Signature: Desde $180.000 COP (3 a 4 horas).\n- Terapia Nutritiva & Reparación: $70.000 COP (60 min).\n- Mantenimiento Gloss: $65.000 COP.\n\nHORARIO:\n- Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n\nREGLAS DE ORO CONVERSACIONALES (PROHIBIDO PARECER ROBOT):\n1. PROHIBIDO REPETIR SALUDOS: Di '¡Hola!' ÚNICAMENTE si este es el primerísimo mensaje de toda la conversación. Si en el historial ya hablaron, ESTÁ TOTALMENTE PROHIBIDO decir '¡Hola!', 'Hola Samuel' ni 'Hola de nuevo'. Responde directo al grano.\n2. MEMORIA DE CONTEXTO Y FLEXIBILIDAD ANTE CAMBIOS: NUNCA vuelvas a preguntar un dato que ya se discutió sin motivo. Si el cliente ya dijo 'quiero peluquearme' o 'corte', asume 'Corte de Tendencia & Styling ($45.000)'. Si propuso 'mañana a las 10', verifica ese horario con la herramienta \"consultar_disponibilidad\". PERO SI EL CLIENTE CAMBIA DE OPINIÓN O DE CONTEXTO (ej: 'mejor otro día', 'mejor el martes', 'ya no quiero corte, quiero balayage', o pregunta por 'otro barbero'), ACEPTA EL CAMBIO DE INMEDIATO: actualiza los datos en tu mente con total flexibilidad, aclara con amabilidad que Andrés es el estilista y director principal del salón si preguntan por otro profesional, y consulta la disponibilidad para la nueva fecha o servicio sin trabarte ni insistir en los datos anteriores.\n3. RESPUESTA SOLO CON NOMBRE (REGLA DE UNICIDAD): Cuando hayas preguntado el nombre para apartar el cupo, el cliente responderá únicamente su nombre y apellido (ej: 'Jessica Beltrán').\n- El nombre recibido es el titular definitivo de la cita (un usuario puede estar reservando para otra persona como su pareja, hija o amiga). El nombre recién recibido REEMPLAZA cualquier nombre que haya aparecido antes en el chat.\n- NUNCA agregues etiquetas como 'Cliente: ...' en tus mensajes.\n- LLAMA EXACTAMENTE UNA SOLA VEZ a la herramienta \"agendar_cita\" usando el nombre recién enviado.\n- PROHIBIDO LLAMAR A \"agendar_cita\" MÚLTIPLES VECES: Nunca intentes agendar para dos personas a la vez ni llames la herramienta más de una vez en un mismo turno.\n4. DISPONIBILIDAD REAL (PROHIBIDO ADIVINAR): Tú NO ves la agenda. NUNCA afirmes ni niegues que hay espacio sin llamar antes a la herramienta \"consultar_disponibilidad\" (fecha en YYYY-MM-DD y código del servicio). Hazlo cada vez que el cliente pregunte '¿tienes espacio?' o proponga una hora. Solo ofrece horarios que aparezcan en 'horarios_disponibles'. Si la hora pedida no está en la lista, dile con naturalidad que ese horario no está libre y ofrece los 2 o 3 más cercanos de la lista. NO pidas el nombre ni digas 'te dejo tu cita' hasta confirmar con la herramienta que la hora está libre.\n4B. AGENDAMIENTO OBLIGATORIO: Cuando la hora esté confirmada como libre y tengas Nombre, Servicio y Fecha/Hora, LLAMA a \"agendar_cita\" UNA sola vez, pasando 'servicio' con el código exacto (corte_styling, balayage_signature, terapia_reparacion o matiz_gloss). No digas que la cita está confirmada antes de que la herramienta devuelva exito=true; luego comunica EXACTAMENTE 'mensaje_para_cliente'.\n4C. SI agendar_cita FALLA: Si devuelve exito=false, comunica 'mensaje_para_cliente' y ofrece solo las alternativas que traiga. NUNCA reintentes con la misma hora. Si devuelve codigo ERROR_TECNICO, NUNCA digas que el horario está ocupado: discúlpate, di que Andrés confirmará personalmente y llama \"escalar_humano\".\n5. CANCELACIÓN DE CITAS (POLÍTICA DE 2 HORAS):\n- PROHIBIDO PEDIR CÓDIGOS: NUNCA le pidas un código, ID ni referencia de cita al cliente. El cliente de WhatsApp NO conoce ningún código; su cita se identifica automáticamente en el sistema por su número telefónico.\n- Si el cliente solicita o confirma cancelar su cita ('cancela mi cita', 'cancélala', 'por favor', 'no puedo ir', 'sí cancela'): LLAMA DE INMEDIATO a la herramienta \"cancelar_cita\". No le pidas confirmaciones repetidas si ya lo expresó claramente.\n- NUNCA digas que la cita fue cancelada sin haber llamado y ejecutado la herramienta \"cancelar_cita\".\n- Cuando la herramienta devuelva respuesta, comunica al cliente EXACTAMENTE el texto provisto en 'mensaje_para_cliente'. Si la herramienta reporta que no encontró cita activa, infórmalo con amabilidad y ofrece avisarle a Andrés con la herramienta \"escalar_humano\".\n6. ESCALAMIENTO A HUMANO: Si el cliente pide hablar con una persona, con Andrés, o expresa una queja/inconformidad que no puedas resolver:\n- TIENES QUE LLAMAR OBLIGATORIAMENTE a la herramienta \"escalar_humano\".\n- Cuando la herramienta devuelva respuesta, confirma al cliente con amabilidad que ya le dejaste una notificación directa a Andrés para que se comunique con él tan pronto se desocupe.\n7. Mensajes concisos: Máximo 2 a 3 oraciones por mensaje.\n"
         }
       },
-      "id": "94c421de-2831-4e9d-b721-5b7900b5c121",
+      "id": "f487c3cf-4cca-419b-a760-75247978f571",
       "name": "AI Agent: Valentina (Andrés Peluquería)",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        240,
-        0
+        2288,
+        1616
       ]
     },
     {
@@ -205,13 +258,13 @@
         },
         "options": {}
       },
-      "id": "7320223e-7959-4e5b-bf88-8d4f94c28bc9",
+      "id": "f8abd9b1-5af7-4e09-b1b6-2067ff4972a4",
       "name": "Ejecutar DS-03_MessageOut",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
       "position": [
-        752,
-        0
+        2800,
+        1616
       ]
     },
     {
@@ -237,10 +290,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        608,
-        0
+        2656,
+        1616
       ],
-      "id": "df8103a1-ec75-4ae4-9869-0c5c275a5037",
+      "id": "7d8fb386-1f1f-4ce1-9ff4-ac43cb8a2738",
       "name": "wa_id"
     },
     {
@@ -258,7 +311,7 @@
           "value": {
             "wa_id": "={{ $('Trigger: Mensaje Consolidado').first().json.wa_id }}",
             "nombre_cliente": "={{ $fromAI('nombre_cliente', 'Nombre completo del cliente', 'string') }}",
-            "servicio": "={{ $fromAI('servicio', 'Servicio solicitado ej: corte, balayage', 'string') }}",
+            "servicio": "={{ $fromAI('servicio', 'Código EXACTO del servicio: corte_styling, balayage_signature, terapia_reparacion o matiz_gloss', 'string') }}",
             "fecha_hora": "={{ $fromAI('fecha_hora', 'Fecha y hora exacta solicitada por el cliente en formato YYYY-MM-DDTHH:mm:ss. Año actual 2026.', 'string') }}"
           },
           "matchingColumns": [],
@@ -311,10 +364,10 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        400,
-        208
+        2448,
+        1824
       ],
-      "id": "6b34356e-d7ce-480a-af5a-44706dd2c1e1",
+      "id": "6d49356a-973c-4730-9097-3d7c1683b0e2",
       "name": "agendar_cita"
     },
     {
@@ -322,8 +375,9 @@
         "description": "Llama a esta herramienta OBLIGATORIAMENTE cuando el cliente manifieste que desea cancelar su cita o confirme que desea cancelarla. Valida la regla de anticipación mínima de 2 horas y libera el cupo en Google Sheets y base de datos.",
         "workflowId": {
           "__rl": true,
-          "value": "T-04_CancelarCita",
+          "value": "7jlOKX550Zo0Znl2",
           "mode": "list",
+          "cachedResultUrl": "/workflow/7jlOKX550Zo0Znl2",
           "cachedResultName": "T-04_CancelarCita"
         },
         "workflowInputs": {
@@ -362,10 +416,10 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        600,
-        208
+        2640,
+        1824
       ],
-      "id": "tool-cancelar-cita",
+      "id": "291bd0be-c354-4de7-89db-9a940686e523",
       "name": "cancelar_cita"
     },
     {
@@ -373,8 +427,9 @@
         "description": "Llama a esta herramienta cuando el cliente pida explícitamente hablar con una persona humana, con Andrés, o presente una queja/inconformidad. Esto pausa el bot por 4 horas y envía una alerta urgente a Andrés en Telegram.",
         "workflowId": {
           "__rl": true,
-          "value": "T-03_EscalarHumano",
+          "value": "JdFmMdDU0jQNgACT",
           "mode": "list",
+          "cachedResultUrl": "/workflow/JdFmMdDU0jQNgACT",
           "cachedResultName": "T-03_EscalarHumano"
         },
         "workflowInputs": {
@@ -413,10 +468,10 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        800,
-        208
+        2848,
+        1824
       ],
-      "id": "tool-escalar-humano",
+      "id": "3407eb8c-a8de-47ee-8de4-80abbb7b2fa8",
       "name": "escalar_humano"
     },
     {
@@ -426,10 +481,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
       "typeVersion": 1,
       "position": [
-        112,
-        208
+        2160,
+        1824
       ],
-      "id": "004c7061-2da8-40d2-9d81-fac84ea6db8a",
+      "id": "6308fabc-c24d-4f5d-870e-6278fcd5f4fc",
       "name": "DeepSeek Chat Model",
       "credentials": {
         "deepSeekApi": {
@@ -441,6 +496,17 @@
   ],
   "pinData": {},
   "connections": {
+    "consultar_disponibilidad": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Valentina (Andrés Peluquería)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Trigger: Mensaje Consolidado": {
       "main": [
         [
@@ -597,7 +663,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "7b248635-1f07-4cc7-a6a7-494aaa3fcd05",
+  "versionId": "1e613acf-adff-4029-b0d0-dda3091c2c6a",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"

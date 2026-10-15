@@ -79,14 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentHour = now.getHours();
 
     let isOpen = false;
+    let isSunday = (day === 0);
     let closingTime = '';
 
-    if (day === 0) { // Domingo
-      if (currentHour >= BUSINESS_CONFIG.schedule.sunday.open && currentHour < BUSINESS_CONFIG.schedule.sunday.close) {
-        isOpen = true;
-        closingTime = '4:00 PM';
-      }
-    } else { // Lunes a Sábado
+    if (!isSunday) { // Lunes a Sábado
       if (currentHour >= BUSINESS_CONFIG.schedule.weekdays.open && currentHour < BUSINESS_CONFIG.schedule.weekdays.close) {
         isOpen = true;
         closingTime = '8:00 PM';
@@ -107,11 +103,20 @@ document.addEventListener('DOMContentLoaded', () => {
         statusDot.style.boxShadow = 'none';
         statusDot.style.animation = 'none';
       }
-      if (statusText) statusText.textContent = `Cerrado por ahora • Asistente WhatsApp activo 24/7`;
-      if (statusPillBig) {
-        statusPillBig.textContent = `🌙 Cerrado • Agendando citas 24/7 en WhatsApp`;
-        statusPillBig.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-        statusPillBig.style.color = '#fbbf24';
+      if (isSunday) {
+        if (statusText) statusText.textContent = `Domingo: Atención con cita previa • WhatsApp 24/7`;
+        if (statusPillBig) {
+          statusPillBig.textContent = `📅 Domingo: Con cita previa en WhatsApp`;
+          statusPillBig.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+          statusPillBig.style.color = '#fbbf24';
+        }
+      } else {
+        if (statusText) statusText.textContent = `Cerrado por ahora • Asistente WhatsApp activo 24/7`;
+        if (statusPillBig) {
+          statusPillBig.textContent = `🌙 Cerrado • Agendando citas 24/7 en WhatsApp`;
+          statusPillBig.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+          statusPillBig.style.color = '#fbbf24';
+        }
       }
     }
   }

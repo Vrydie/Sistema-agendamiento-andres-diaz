@@ -6,34 +6,34 @@
         "rule": {
           "interval": [
             {
-              "field": "minutes",
-              "minutesInterval": 15
+              "field": "cronExpression",
+              "expression": "*/30 7-18 * * 1-6"
             }
           ]
         }
       },
-      "id": "e6a21804-9d11-47fa-8ea5-0b0bbd603a11",
-      "name": "Cron: Cada 15 Minutos",
+      "id": "b86e87c7-c16d-4de9-bbb2-295035c325c2",
+      "name": "Cron: Cada 30 Min en Horario Laboral",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -360,
-        200
+        0,
+        0
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n    c.id AS cita_id,\n    c.fecha_inicio,\n    c.fecha_fin,\n    cl.wa_id,\n    COALESCE(cl.nombre, 'Cliente') AS cliente_nombre,\n    s.nombre AS servicio_nombre,\n    s.precio_base_cop\nFROM citas c\nJOIN clientes cl ON cl.id = c.cliente_id\nJOIN servicios s ON s.id = c.servicio_id\nWHERE c.estado = 'confirmada'\n  AND c.recordatorio_enviado = FALSE\n  AND c.fecha_inicio >= CURRENT_TIMESTAMP\n  AND c.fecha_inicio <= (CURRENT_TIMESTAMP + INTERVAL '2 hours 15 minutes')\nORDER BY c.fecha_inicio ASC;",
+        "query": "WITH reclamadas AS (\n  UPDATE citas\n  SET recordatorio_enviado = TRUE, actualizada_en = CURRENT_TIMESTAMP\n  WHERE id IN (\n    SELECT c2.id\n    FROM citas c2\n    WHERE c2.estado = 'confirmada'\n      AND c2.recordatorio_enviado = FALSE\n      AND c2.fecha_inicio > CURRENT_TIMESTAMP\n      AND c2.fecha_inicio <= CURRENT_TIMESTAMP + INTERVAL '2 hours 30 minutes'\n      AND c2.fecha_inicio - c2.creada_en >= INTERVAL '3 hours'\n    ORDER BY c2.fecha_inicio ASC\n    FOR UPDATE SKIP LOCKED\n  )\n  RETURNING id, cliente_id, servicio_id, fecha_inicio, fecha_fin\n)\nSELECT\n  r.id AS cita_id,\n  r.fecha_inicio,\n  r.fecha_fin,\n  cl.wa_id,\n  COALESCE(cl.nombre, 'Cliente') AS cliente_nombre,\n  s.nombre AS servicio_nombre,\n  s.precio_base_cop\nFROM reclamadas r\nJOIN clientes cl ON cl.id = r.cliente_id\nJOIN servicios s ON s.id = r.servicio_id\nORDER BY r.fecha_inicio ASC;",
         "options": {}
       },
-      "id": "1bc2399e-fa31-4be6-8806-c8529323f4a1",
-      "name": "DB: Buscar Citas Próximas (2 Horas)",
+      "id": "e0b3d0fb-e6ff-4e4f-b307-7ffacaa84986",
+      "name": "DB: Reclamar Citas Próximas (Una Sola Vez)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -120,
-        200
+        240,
+        0
       ],
       "credentials": {
         "postgres": {
@@ -46,13 +46,13 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  if (!data || !data.wa_id || !data.fecha_inicio) continue;\n\n  const fechaObj = new Date(data.fecha_inicio);\n  const opcionesFecha = {\n    weekday: 'long',\n    day: 'numeric',\n    month: 'long',\n    timeZone: 'America/Bogota'\n  };\n  const opcionesHora = {\n    hour: 'numeric',\n    minute: '2-digit',\n    hour12: true,\n    timeZone: 'America/Bogota'\n  };\n\n  const diaFormateado = fechaObj.toLocaleDateString('es-CO', opcionesFecha);\n  const horaFormateada = fechaObj.toLocaleTimeString('es-CO', opcionesHora);\n\n  const nombreLimpio = (data.cliente_nombre && data.cliente_nombre !== 'Cliente' && data.cliente_nombre !== 'Cliente WhatsApp')\n    ? data.cliente_nombre.split(' ')[0]\n    : 'Hola';\n\n  const saludo = (nombreLimpio !== 'Hola') ? `¡Hola, ${nombreLimpio}!` : '¡Hola!';\n\n  const texto = `${saludo} Te saludamos de *Andrés Díaz - Tendencia en Peluquería* ✨\\n\\nTe recordamos que tienes una cita programada para hoy:\\n💇 *Servicio:* ${data.servicio_nombre}\\n⏰ *Hora:* ${horaFormateada} (${diaFormateado})\\n📍 *Sede:* Cra 83 # 09, Bogotá\\n\\n🌟 Andrés y el equipo ya tienen todo listo para tu atención. ¿Nos confirmas por favor si ya vienes en camino? Si necesitas alguna indicación para llegar, con gusto te guiamos. ¡Te esperamos!`;\n\n  results.push({\n    json: {\n      cita_id: data.cita_id,\n      wa_id: data.wa_id.toString().replace(/\\D/g, ''),\n      cliente_nombre: data.cliente_nombre,\n      servicio_nombre: data.servicio_nombre,\n      hora_formateada: horaFormateada,\n      dia_formateado: diaFormateado,\n      texto: texto\n    }\n  });\n}\n\nreturn results;\n"
       },
-      "id": "78ff0511-2092-41ba-87b6-bca542750e39",
+      "id": "e4df4c54-57ac-4da4-a584-3788805370bf",
       "name": "Formatear Recordatorio WhatsApp",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        120,
-        200
+        480,
+        0
       ]
     },
     {
@@ -66,37 +66,15 @@
         },
         "options": {}
       },
-      "id": "e8392182-3c22-4411-9a70-76c2a4985221",
+      "id": "a07f12d1-facd-4930-a4f9-a922b6a34038",
       "name": "Ejecutar DS-03_MessageOut",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
       "position": [
-        360,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE citas \nSET recordatorio_enviado = TRUE, actualizada_en = CURRENT_TIMESTAMP\nWHERE id = $1::uuid;\nSELECT 'ok' AS status;",
-        "options": {
-          "queryReplacement": "={{ [$('Formatear Recordatorio WhatsApp').item.json.cita_id] }}"
-        }
-      },
-      "id": "9218fbd2-0882-412f-b428-15cf64939da1",
-      "name": "DB: Marcar Recordatorio Enviado",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        600,
-        200
+        720,
+        0
       ],
-      "credentials": {
-        "postgres": {
-          "id": "EppjWtl0P6ZXP0fh",
-          "name": "Postgres account"
-        }
-      }
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -106,37 +84,63 @@
           "parse_mode": "Markdown"
         }
       },
-      "id": "e936551b-2612-4f32-8e10-381048618e77",
+      "id": "c98a07ca-ad12-4959-b65e-98f278152f2a",
       "name": "Telegram: Avisar a Andrés",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        840,
-        200
+        960,
+        -80
       ],
-      "onError": "continueRegularOutput",
+      "webhookId": "b82d6e51-87fe-4796-8999-2019702fafba",
       "credentials": {
         "telegramApi": {
           "id": "ip1uLbMWnxO9XrUT",
           "name": "Telegram account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "=5926139023",
+        "text": "=⚠️ *No se pudo enviar el recordatorio*\n\n👤 *Cliente:* {{ $('Formatear Recordatorio WhatsApp').item.json.cliente_nombre }}\n⏰ *Cita:* {{ $('Formatear Recordatorio WhatsApp').item.json.hora_formateada }}\n📱 *WhatsApp:* +{{ $('Formatear Recordatorio WhatsApp').item.json.wa_id }}\n\nEl sistema NO reintentará automáticamente. Escríbele manualmente si lo consideras necesario.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "5d3b7a10-2c8e-4f61-8a47-9e0d1c2b3a4f",
+      "name": "Telegram: Alertar Fallo de Recordatorio",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        120
+      ],
+      "webhookId": "7f2c9d34-5a61-4b08-9c3e-2d1e0f4a5b6c",
+      "credentials": {
+        "telegramApi": {
+          "id": "ip1uLbMWnxO9XrUT",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
   "connections": {
-    "Cron: Cada 15 Minutos": {
+    "Cron: Cada 30 Min en Horario Laboral": {
       "main": [
         [
           {
-            "node": "DB: Buscar Citas Próximas (2 Horas)",
+            "node": "DB: Reclamar Citas Próximas (Una Sola Vez)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "DB: Buscar Citas Próximas (2 Horas)": {
+    "DB: Reclamar Citas Próximas (Una Sola Vez)": {
       "main": [
         [
           {
@@ -162,18 +166,14 @@
       "main": [
         [
           {
-            "node": "DB: Marcar Recordatorio Enviado",
+            "node": "Telegram: Avisar a Andrés",
             "type": "main",
             "index": 0
           }
-        ]
-      ]
-    },
-    "DB: Marcar Recordatorio Enviado": {
-      "main": [
+        ],
         [
           {
-            "node": "Telegram: Avisar a Andrés",
+            "node": "Telegram: Alertar Fallo de Recordatorio",
             "type": "main",
             "index": 0
           }
@@ -184,13 +184,15 @@
   "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "timezone": "America/Bogota",
+    "saveDataSuccessExecution": "none"
   },
-  "versionId": "c01-recordatorios-2026-v1",
+  "versionId": "cafd2ba7-8e90-4ca6-8608-06c2300507d7",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
   },
   "nodeGroups": [],
+  "id": "hwWbeQZ8BPWIsVrN",
   "tags": []
 }

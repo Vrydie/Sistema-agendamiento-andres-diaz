@@ -3,106 +3,18 @@
   "nodes": [
     {
       "parameters": {
-        "operation": "readRows",
-        "documentId": {
-          "__rl": true,
-          "value": "1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk",
-          "mode": "list",
-          "cachedResultName": "AndresPDB",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "Hoja 1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit#gid=0"
-        },
-        "options": {}
-      },
-      "id": "f7734357-e8e8-4738-8e49-421e4f824370",
-      "name": "Google Sheets: Consultar Agenda",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        528,
-        528
-      ],
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "nO3OdsbG8TNMXxZN",
-          "name": "Google Sheets account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const items = $input.all();\nconst fechaHoy = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });\nconst msgRaw = $('Telegram Trigger: Mensaje Entrante1').first().json.message;\nconst textoAndres = msgRaw.text || '¿Qué citas tengo?';\n\nconst citasConfirmadas = [];\nconst citasCanceladas = [];\n\nfor (const it of items) {\n  const j = it.json;\n  if (!j || (!j['Nombre Cliente'] && !j.cliente)) continue;\n  const st = (j['Estado'] || j.estado || 'confirmada').toString().trim().toLowerCase();\n  const c = {\n    cliente: j['Nombre Cliente'] || j.cliente,\n    wa_id: (j['WhatsApp'] || j.wa_id || '').toString().trim(),\n    servicio: j['Servicio'] || j.servicio,\n    fecha_cita: (j['Fecha Cita'] || j.fecha_inicio || '').toString().trim(),\n    precio: j['Precio COP'] || j.precio,\n    estado: st === 'cancelada' ? 'Cancelada' : 'Confirmada'\n  };\n  if (st === 'cancelada') {\n    citasCanceladas.push(c);\n  } else {\n    citasConfirmadas.push(c);\n  }\n}\n\nreturn [{\n  json: {\n    chat_id: msgRaw.chat.id,\n    pregunta_andres: textoAndres,\n    fecha_actual: fechaHoy,\n    citas_activas: citasConfirmadas,\n    citas_canceladas: citasCanceladas,\n    resumen_citas_activas_texto: JSON.stringify(citasConfirmadas, null, 2),\n    resumen_citas_canceladas_texto: JSON.stringify(citasCanceladas, null, 2)\n  }\n}];"
-      },
-      "id": "3831a66c-7d6f-42cc-bcaf-d2f75cb7834e",
-      "name": "Preparar Contexto Agenda & Pregunta",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        768,
-        528
-      ]
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Pregunta de Andrés: {{ $json.pregunta_andres }}\nFecha y hora actual en Bogotá: {{ $json.fecha_actual }}\n\nCITAS ACTIVAS (CONFIRMADAS):\n{{ $json.resumen_citas_activas_texto }}\n\nCITAS CANCELADAS (ESPACIOS LIBERADOS):\n{{ $json.resumen_citas_canceladas_texto }}",
-        "options": {
-          "systemMessage": "Eres el Asistente Ejecutivo Personal y Copiloto de Andrés Díaz (dueño de Andrés Peluquería, Cra 83 # 09, Bogotá).\nTu misión es atender exclusivamente a Andrés por Telegram con calidez, agilidad, precisión y respeto.\n\nDATOS OPERATIVOS DEL SALÓN:\n- Horario de atención: Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n- Precios de referencia: Balayage ($180.000 COP, 3-4h), Corte Styling ($45.000 COP, 45-60min), Terapia Nutritiva ($70.000 COP, 1h), Gloss ($65.000 COP).\n\nREGLAS CLAVE DE AGENDA:\n- Solo las citas de 'CITAS ACTIVAS (CONFIRMADAS)' ocupan la agenda y suman a la proyección de recaudo.\n- Las citas de 'CITAS CANCELADAS' representan espacios que quedaron LIBERADOS. NO las cuentes como citas pendientes ni como dinero por cobrar. Si Andrés pregunta por una cita cancelada, infórmale con gusto que el cliente la canceló y que ese horario está disponible.\n\nCÓMO DEBES RESPONDER A ANDRÉS:\n1. Si Andrés pregunta por espacios libres (ej: '¿a qué hora tengo espacio hoy?', '¿puedo almorzar a la 1?', '¿qué horas tengo libres el viernes?'):\n   - Identifica el día que pregunta con base en la fecha actual.\n   - Cruza las citas activas de ese día y calcula con precisión los bloques de tiempo libres entre las 9:00 AM y las 8:00 PM.\n   - Respóndele claramente a qué horas está desocupado para recibir clientas o tomar descansos.\n2. Si Andrés pregunta qué citas tiene (hoy, mañana o en general):\n   - Filtra las citas activas correspondientes a esa fecha.\n   - Si tiene citas: dale la lista ordenada por hora con nombre de clienta, servicio, precio y enlace 'https://wa.me/[wa_id]'.\n   - Si no tiene citas activas para esa fecha: dile con simpatía que no tiene citas confirmadas para ese día y que tiene la agenda libre.\n3. Si Andrés pregunta por dinero o proyección de recaudo:\n   - Suma el valor de las citas activas del período consultado y dale la cifra exacta en pesos colombianos ($ COP).\n4. Sé conciso, elegante y usa viñetas/emojis ejecutivos de Telegram."
-        }
-      },
-      "id": "bc792bf5-055a-4a18-9af9-601700706398",
-      "name": "AI Agent: Copiloto Ejecutivo Andrés",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.7,
-      "position": [
-        1008,
-        528
-      ]
-    },
-    {
-      "parameters": {
-        "chatId": "={{ $('Telegram Trigger: Mensaje Entrante1').first().json.message.chat.id }}",
-        "text": "={{ $json.output }}",
-        "additionalFields": {
-          "parse_mode": "Markdown"
-        }
-      },
-      "id": "ae1d4230-f0ab-48bb-a084-3f8ced4ec5be",
-      "name": "Telegram: Responder a Andrés",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [
-        1248,
-        528
-      ],
-      "webhookId": "df1a0782-55d8-49ff-8130-613a9409b489",
-      "credentials": {
-        "telegramApi": {
-          "id": "ip1uLbMWnxO9XrUT",
-          "name": "Telegram account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "updates": [
           "message"
         ],
         "additionalFields": {}
       },
-      "id": "173ffd0a-4fee-43a0-a21a-23070ee43a05",
+      "id": "a823c42a-c124-4fdd-8839-0c313cee46eb",
       "name": "Telegram Trigger: Mensaje Entrante1",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,
       "position": [
-        48,
-        592
+        896,
+        1184
       ],
       "webhookId": "c490d917-7034-454d-95df-f07780b06273",
       "credentials": {
@@ -136,13 +48,13 @@
         },
         "options": {}
       },
-      "id": "95aa9a0a-14cf-496c-a4b3-021609c0d9fb",
+      "id": "187eabe7-7137-4fcd-b36c-f5bd8d0b2dad",
       "name": "¿Es Andrés (Admin)?1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        288,
-        592
+        1136,
+        1184
       ]
     },
     {
@@ -153,15 +65,293 @@
           "parse_mode": "Markdown"
         }
       },
-      "id": "7693cf11-b6c5-4423-8994-5f31a356a240",
+      "id": "3fa16865-52a9-49fc-8bea-2415c18ee1cd",
       "name": "Telegram: Rechazar No Autorizado1",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        528,
-        736
+        1376,
+        1376
       ],
       "webhookId": "f9812ded-52a4-4762-b129-6344cbe639ed",
+      "credentials": {
+        "telegramApi": {
+          "id": "ip1uLbMWnxO9XrUT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "check-is-cancel-cmd",
+              "leftValue": "={{ (/^\\/cancelar(?:\\s+(.+))?$/i).test(($('Telegram Trigger: Mensaje Entrante1').first().json.message.text || '').trim()) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5c904fa1-8270-4d89-98fe-0f11ac2b801a",
+      "name": "¿Es Comando /cancelar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM cancelar_cita(\n  NULLIF(trim(regexp_replace(($1 || ''), '^/cancelar\\s*', '', 'i')), ''),\n  NULL::text,\n  TRUE\n);",
+        "options": {
+          "queryReplacement": "={{ [$('Telegram Trigger: Mensaje Entrante1').first().json.message.text || ''] }}"
+        }
+      },
+      "id": "4de29615-18cb-4654-8fe4-9989b52a1c22",
+      "name": "DB: Cancelar Cita Admin",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1616,
+        992
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "check-admin-cancel-ok",
+              "leftValue": "={{ $json.out_codigo || '' }}",
+              "rightValue": "CANCELADA",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "67b93198-d102-4fc4-93e1-cf288ba5403e",
+      "name": "¿Cita Cancelada con Éxito?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk",
+          "mode": "list",
+          "cachedResultName": "AndresPDB",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Cita": "={{ $('DB: Cancelar Cita Admin').first().json.out_cita_id }}",
+            "Estado": "Cancelada"
+          },
+          "matchingColumns": [
+            "ID Cita"
+          ],
+          "schema": [
+            {
+              "id": "ID Cita",
+              "displayName": "ID Cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "993a401b-7a89-4cd0-9382-7f28bb3901a1",
+      "name": "Sheets: Marcar Cancelada Admin",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2096,
+        928
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "nO3OdsbG8TNMXxZN",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger: Mensaje Entrante1').first().json.message.chat.id }}",
+        "text": "=✅ *CITA CANCELADA POR ANDRÉS*\n\n👤 *Cliente:* {{ $('DB: Cancelar Cita Admin').first().json.out_cliente_nombre }}\n💇 *Servicio:* {{ $('DB: Cancelar Cita Admin').first().json.out_servicio_nombre }}\n⏰ *Horario liberado:* {{ new Date($('DB: Cancelar Cita Admin').first().json.out_fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) }}\n📱 *WhatsApp:* +{{ $('DB: Cancelar Cita Admin').first().json.out_wa_id }}\n\n✨ *El cupo está nuevamente 100% disponible en la agenda.*",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "3e791b8a-192a-43cf-87eb-07920ab3e011",
+      "name": "Telegram: Confirmar Cancelación Admin",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2336,
+        928
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "ip1uLbMWnxO9XrUT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger: Mensaje Entrante1').first().json.message.chat.id }}",
+        "text": "=⚠️ *No se pudo cancelar la cita*\n\n{{ $('DB: Cancelar Cita Admin').first().json.out_mensaje || 'Verifica el código o número enviado. Ejemplo de uso: /cancelar #c0bc2f o /cancelar 573154899983' }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "7fa9201b-5e89-4cd0-87a1-8e920ac3e022",
+      "name": "Telegram: Aviso Error Cancelación",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2096,
+        1072
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "ip1uLbMWnxO9XrUT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  c.id AS cita_id,\n  substring(c.id::text from 1 for 8) AS ref_corta,\n  to_char(c.fecha_inicio AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD HH24:MI') AS fecha_cita,\n  to_char(c.fecha_inicio AT TIME ZONE 'America/Bogota', 'TMDay, DD \"de\" TMMonth - FMHH12:MI AM') AS fecha_humana,\n  to_char(c.fecha_fin AT TIME ZONE 'America/Bogota', 'FMHH12:MI AM') AS hora_fin,\n  s.nombre AS servicio,\n  s.precio_base_cop AS precio,\n  COALESCE(NULLIF(trim(substring(c.notas from 'Titular: ([^|]*)')), ''), cl.nombre) AS cliente,\n  cl.wa_id,\n  c.estado\nFROM citas c\nJOIN clientes cl ON cl.id = c.cliente_id\nJOIN servicios s ON s.id = c.servicio_id\nWHERE c.fecha_inicio >= (now() AT TIME ZONE 'America/Bogota')::date - INTERVAL '1 day'\n  AND c.fecha_inicio <= (now() AT TIME ZONE 'America/Bogota')::date + INTERVAL '7 days'\nORDER BY c.fecha_inicio ASC;",
+        "options": {}
+      },
+      "id": "1c38980b-1d4e-4850-9ea9-5a5e11558a7f",
+      "name": "DB: Consultar Agenda Real Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1616,
+        1232
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst fechaHoy = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });\nconst msgRaw = $('Telegram Trigger: Mensaje Entrante1').first().json.message;\nconst textoAndres = msgRaw.text || '¿Qué citas tengo?';\n\nconst citasConfirmadas = [];\nconst citasCanceladas = [];\n\nfor (const it of items) {\n  const j = it.json;\n  if (!j || !j.cita_id) continue;\n  const st = (j.estado || 'confirmada').toString().trim().toLowerCase();\n  const c = {\n    ref: '#' + (j.ref_corta || j.cita_id.slice(0, 8)),\n    cliente: j.cliente || 'Cliente',\n    wa_id: (j.wa_id || '').toString().trim(),\n    servicio: j.servicio || 'Servicio',\n    fecha_cita: j.fecha_cita,\n    fecha_humana: j.fecha_humana,\n    hora_fin: j.hora_fin,\n    precio: Number(j.precio || 0),\n    estado: st === 'cancelada' ? 'Cancelada' : 'Confirmada'\n  };\n  if (st === 'cancelada') {\n    citasCanceladas.push(c);\n  } else {\n    citasConfirmadas.push(c);\n  }\n}\n\nreturn [{\n  json: {\n    chat_id: msgRaw.chat.id,\n    pregunta_andres: textoAndres,\n    fecha_actual: fechaHoy,\n    citas_activas: citasConfirmadas,\n    citas_canceladas: citasCanceladas,\n    resumen_citas_activas_texto: JSON.stringify(citasConfirmadas, null, 2),\n    resumen_citas_canceladas_texto: JSON.stringify(citasCanceladas, null, 2)\n  }\n}];"
+      },
+      "id": "845420ad-df4a-4b2e-8b00-14690a3f51fe",
+      "name": "Preparar Contexto Agenda Postgres",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        1232
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Pregunta de Andrés: {{ $json.pregunta_andres }}\nFecha y hora actual en Bogotá: {{ $json.fecha_actual }}\n\nCITAS ACTIVAS EN BASE DE DATOS (CONFIRMADAS):\n{{ $json.resumen_citas_activas_texto }}\n\nCITAS CANCELADAS RECIENTES (ESPACIOS LIBERADOS):\n{{ $json.resumen_citas_canceladas_texto }}",
+        "options": {
+          "systemMessage": "Eres el Asistente Ejecutivo Personal y Copiloto de Andrés Díaz (dueño de Andrés Peluquería, Cra 83 # 09, Bogotá).\nTu misión es atender exclusivamente a Andrés por Telegram con calidez, agilidad, precisión y respeto.\n\nDATOS OPERATIVOS DEL SALÓN:\n- Horario de atención: Lunes a Sábado de 9:00 AM a 8:00 PM. Domingos y festivos: Cerrado.\n- Precios de referencia: Balayage ($180.000 COP, 3-4h), Corte Styling ($45.000 COP, 45-60min), Terapia Nutritiva ($70.000 COP, 1h), Gloss ($65.000 COP).\n\nREGLAS CLAVE DE AGENDA:\n- Solo las citas de 'CITAS ACTIVAS EN BASE DE DATOS (CONFIRMADAS)' ocupan la agenda y suman a la proyección de recaudo.\n- Para cada cita activa que le menciones a Andrés, incluye SIEMPRE su referencia corta en formato de comando listo para copiar o tocar: `/cancelar [ref]` (ej: `/cancelar #c0bc2f`). Así Andrés puede cancelarla con un solo toque si la clienta no asiste.\n- Las citas de 'CITAS CANCELADAS' representan espacios que quedaron LIBERADOS. NO las cuentes como citas pendientes ni como dinero por cobrar.\n\nCÓMO DEBES RESPONDER A ANDRÉS:\n1. Si Andrés pregunta por espacios libres (ej: '¿a qué hora tengo espacio hoy?', '¿puedo almorzar a la 1?', '¿qué horas tengo libres el viernes?'):\n   - Identifica el día que pregunta con base en la fecha actual.\n   - Cruza las citas activas de ese día y calcula con precisión los bloques de tiempo libres entre las 9:00 AM y las 8:00 PM.\n   - Respóndele claramente a qué horas está desocupado para recibir clientas o tomar descansos.\n2. Si Andrés pregunta qué citas tiene (hoy, mañana o en general):\n   - Filtra las citas activas correspondientes a esa fecha.\n   - Si tiene citas: dale la lista ordenada por hora con: Hora, Nombre, Servicio, Valor en COP, enlace de WhatsApp (https://wa.me/[wa_id]) y el comando para cancelar: `/cancelar [ref]`.\n   - Si no tiene citas activas para esa fecha: dile con alegría que no tiene citas confirmadas para ese día y que tiene la agenda libre.\n3. Si Andrés pide cancelar una cita en lenguaje natural (ej: 'cancela la de Samuel'):\n   - Busca la cita en la lista activa e indícale: 'Para cancelarla de inmediato, toca este comando: `/cancelar [ref]`'.\n4. Si Andrés pregunta por dinero o proyección de recaudo:\n   - Suma el valor de las citas activas del período consultado y dale la cifra exacta en pesos colombianos ($ COP).\n5. Sé conciso, ejecutivo y usa viñetas/emojis limpios de Telegram."
+        }
+      },
+      "id": "de531baf-63cc-4d4c-a611-219631ce11f0",
+      "name": "AI Agent: Copiloto Ejecutivo Andrés",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        2096,
+        1232
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger: Mensaje Entrante1').first().json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "03bfb1b8-dc2f-4a14-84bd-b381ed77f194",
+      "name": "Telegram: Responder a Andrés",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2336,
+        1232
+      ],
+      "webhookId": "df1a0782-55d8-49ff-8130-613a9409b489",
       "credentials": {
         "telegramApi": {
           "id": "ip1uLbMWnxO9XrUT",
@@ -177,10 +367,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
       "typeVersion": 1,
       "position": [
-        992,
-        704
+        2096,
+        1408
       ],
-      "id": "d6e473ce-d524-4cad-a014-6f3199e4af54",
+      "id": "80a8b062-a8c3-476e-9978-883342a6f539",
       "name": "DeepSeek Chat Model",
       "credentials": {
         "deepSeekApi": {
@@ -192,39 +382,6 @@
   ],
   "pinData": {},
   "connections": {
-    "Google Sheets: Consultar Agenda": {
-      "main": [
-        [
-          {
-            "node": "Preparar Contexto Agenda & Pregunta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Preparar Contexto Agenda & Pregunta": {
-      "main": [
-        [
-          {
-            "node": "AI Agent: Copiloto Ejecutivo Andrés",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent: Copiloto Ejecutivo Andrés": {
-      "main": [
-        [
-          {
-            "node": "Telegram: Responder a Andrés",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Telegram Trigger: Mensaje Entrante1": {
       "main": [
         [
@@ -240,7 +397,7 @@
       "main": [
         [
           {
-            "node": "Google Sheets: Consultar Agenda",
+            "node": "¿Es Comando /cancelar?",
             "type": "main",
             "index": 0
           }
@@ -248,6 +405,97 @@
         [
           {
             "node": "Telegram: Rechazar No Autorizado1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es Comando /cancelar?": {
+      "main": [
+        [
+          {
+            "node": "DB: Cancelar Cita Admin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB: Consultar Agenda Real Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Cancelar Cita Admin": {
+      "main": [
+        [
+          {
+            "node": "¿Cita Cancelada con Éxito?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Cita Cancelada con Éxito?": {
+      "main": [
+        [
+          {
+            "node": "Sheets: Marcar Cancelada Admin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: Aviso Error Cancelación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets: Marcar Cancelada Admin": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Confirmar Cancelación Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Consultar Agenda Real Postgres": {
+      "main": [
+        [
+          {
+            "node": "Preparar Contexto Agenda Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Contexto Agenda Postgres": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Copiloto Ejecutivo Andrés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Copiloto Ejecutivo Andrés": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Responder a Andrés",
             "type": "main",
             "index": 0
           }
@@ -271,7 +519,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "aa9fa433-23ab-4455-ba2f-db0814603a4a",
+  "versionId": "88f9586a-bfc4-4b10-adcd-2529d4292214",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "cefc5bdcd3227a3b9d3bdfdbfd328e7d8b7c4afe0d13db31ee613cf7266d4146"
