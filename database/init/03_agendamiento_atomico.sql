@@ -24,7 +24,7 @@ BEGIN
         EXCLUDE USING gist (tstzrange(fecha_inicio, fecha_fin, '[)') WITH &&)
         WHERE (estado = 'confirmada');
 EXCEPTION
-    WHEN duplicate_object THEN
+    WHEN duplicate_object OR duplicate_table THEN
         NULL; -- ya existe
     WHEN exclusion_violation THEN
         RAISE NOTICE 'No se creó citas_sin_solapamiento: ya existen citas confirmadas solapadas. Cancela las duplicadas y vuelve a ejecutar.';

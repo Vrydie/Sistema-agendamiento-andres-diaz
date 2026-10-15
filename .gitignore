@@ -28,3 +28,7 @@ Thumbs.db
 # Pruebas locales y scratch
 scratch/
 test_*.json
+node_modules/
+package-lock.json
+package.json
+
