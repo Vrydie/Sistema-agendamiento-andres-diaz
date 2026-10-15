@@ -25,7 +25,7 @@
             },
             {
               "name": "Authorization",
-              "value": "=Bearer {{ $env.WHATSAPP_TOKEN || 'EAAe9koDu00wBSrI4VLHm2VVWcmU5izBWynBZBbJozo7XOffigRpT14BsM8bhVzzUiUF4yaRKX2t49KxokkZAQALyH0D4PLSnzcEsgPisndNLwhh4PCGZCdyhVHDelymTuQphayZAHauPnQORqzob5LJfj517akTq6McOsMEjp6ySu3iu2hbDToDBfRMsEVFF8gZDZD' }}"
+              "value": "Bearer EAAe9koDu00wBSrI4VLHm2VVWcmU5izBWynBZBbJozo7XOffigRpT14BsM8bhVzzUiUF4yaRKX2t49KxokkZAQALyH0D4PLSnzcEsgPisndNLwhh4PCGZCdyhVHDelymTuQphayZAHauPnQORqzob5LJfj517akTq6McOsMEjp6ySu3iu2hbDToDBfRMsEVFF8gZDZD"
             }
           ]
         },
