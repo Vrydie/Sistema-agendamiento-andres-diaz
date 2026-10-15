@@ -15,9 +15,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH srv AS (\n  SELECT * FROM resolver_servicio($2) LIMIT 1\n),\nfecha_valida AS (\n  SELECT CASE\n    WHEN $1 ~ '^\\d{4}-\\d{2}-\\d{2}$' THEN $1::date\n    WHEN $1 ~* 'mañana' THEN ((now() AT TIME ZONE 'America/Bogota')::date + INTERVAL '1 day')::date\n    ELSE (now() AT TIME ZONE 'America/Bogota')::date\n  END AS f\n),\nslots AS (\n  SELECT d.slot_inicio\n  FROM srv, fecha_valida fv,\n  LATERAL consultar_disponibilidad(fv.f, srv.duracion_minutos) d\n)\nSELECT\n  (SELECT nombre FROM srv) AS servicio,\n  (SELECT duracion_minutos FROM srv) AS duracion_minutos,\n  (SELECT to_char(f, 'YYYY-MM-DD') FROM fecha_valida) AS fecha_consultada,\n  COALESCE((SELECT string_agg(to_char(slot_inicio AT TIME ZONE 'America/Bogota', 'HH24:MI'), ',' ORDER BY slot_inicio) FROM slots), '') AS slots_24h;",
+        "query": "WITH srv AS (\n  SELECT * FROM resolver_servicio($2) LIMIT 1\n),\nfecha_valida AS (\n  SELECT CASE\n    WHEN $1 ~ '^\\d{4}-\\d{2}-\\d{2}$' THEN $1::date\n    WHEN $1 ~* 'mañana' THEN ((now() AT TIME ZONE 'America/Bogota')::date + INTERVAL '1 day')::date\n    ELSE (now() AT TIME ZONE 'America/Bogota')::date\n  END AS f\n),\nslots AS (\n  SELECT d.slot_inicio\n  FROM srv, fecha_valida fv,\n  LATERAL consultar_disponibilidad(fv.f, srv.duracion_minutos, $3) d\n)\nSELECT\n  (SELECT nombre FROM srv) AS servicio,\n  (SELECT duracion_minutos FROM srv) AS duracion_minutos,\n  (SELECT to_char(f, 'YYYY-MM-DD') FROM fecha_valida) AS fecha_consultada,\n  COALESCE((SELECT string_agg(to_char(slot_inicio AT TIME ZONE 'America/Bogota', 'HH24:MI'), ',' ORDER BY slot_inicio) FROM slots), '') AS slots_24h;",
         "options": {
-          "queryReplacement": "={{ [$json.fecha || '', $json.servicio || ''] }}"
+          "queryReplacement": "={{ [$json.fecha || '', $json.servicio || '', $json.wa_id || null] }}"
         }
       },
       "id": "node-db-get-slots",

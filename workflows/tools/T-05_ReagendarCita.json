@@ -1,0 +1,314 @@
+{
+  "name": "T-05_ReagendarCita",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "e0a1b2c3-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
+      "name": "Tool Trigger: Reagendar Cita",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst wa_id = String(item.wa_id || '').replace(/\\D/g, '');\nconst rawFecha = item.nueva_fecha_hora || item.fecha_hora || '';\nconst servicio = item.servicio || null;\n\nfunction parsearFechaColombia(str) {\n  if (!str) return null;\n  \n  // ISO estándar o con offset\n  if (/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?([+-]\\d{2}:?\\d{2}|Z)?$/.test(str)) {\n    const d = new Date(str);\n    if (isNaN(d.getTime())) return null;\n    \n    if (str.endsWith('Z') || /[+-]\\d{2}:?\\d{2}$/.test(str)) {\n      const parts = new Intl.DateTimeFormat('sv-SE', {\n        timeZone: 'America/Bogota',\n        year: 'numeric', month: '2-digit', day: '2-digit',\n        hour: '2-digit', minute: '2-digit', second: '2-digit',\n        hourCycle: 'h23'\n      }).formatToParts(d);\n      \n      const p = {};\n      parts.forEach(pt => p[pt.type] = pt.value);\n      return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}-05:00`;\n    }\n    \n    const isoBase = str.slice(0, 19);\n    const [datePart, timePart] = isoBase.split('T');\n    const [y, m, day] = datePart.split('-');\n    const checkDate = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(day)));\n    if (checkDate.getUTCDate() !== parseInt(day) || checkDate.getUTCMonth() !== (parseInt(m) - 1)) {\n      return null;\n    }\n    return `${isoBase}-05:00`;\n  }\n  \n  const m = str.match(/^(\\d{4}-\\d{2}-\\d{2})[ T](\\d{1,2}):(\\d{2})(?::(\\d{2}))?\\s*(am|pm)?$/i);\n  if (!m) return null;\n  \n  const [_, fecha, hora, min, seg, mer] = m;\n  let h = parseInt(hora, 10);\n  \n  if (mer) {\n    const isPm = mer.toLowerCase() === 'pm';\n    if (isPm && h < 12) h += 12;\n    if (!isPm && h === 12) h = 0;\n  } else {\n    if (h >= 1 && h <= 8) {\n      h += 12;\n    }\n  }\n  \n  const s = seg || '00';\n  return `${fecha}T${String(h).padStart(2, '0')}:${min}:${s}-05:00`;\n}\n\nconst fechaIso = parsearFechaColombia(rawFecha);\n\nif (!wa_id) {\n  return [{ json: { error: true, out_codigo: 'CLIENTE_NO_ENCONTRADO', out_mensaje: 'No se identificó el WhatsApp del cliente.' } }];\n}\n\nif (!fechaIso) {\n  return [{ json: { error: true, out_codigo: 'FECHA_INVALIDA', out_mensaje: 'La fecha u hora solicitada no es válida. Por favor indica día y hora exactos.' } }];\n}\n\nreturn [{\n  json: {\n    wa_id,\n    fecha_hora_iso: fechaIso,\n    servicio\n  }\n}];"
+      },
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "Parsear Fecha Reagendamiento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM reagendar_cita_atomica($1, $2::timestamptz, $3);",
+        "options": {
+          "queryReplacement": "={{ [$json.wa_id, $json.fecha_hora_iso, $json.servicio || null] }}"
+        }
+      },
+      "id": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+      "name": "DB: Reagendar Cita Atómica",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        640,
+        300
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "check-reagendada",
+              "leftValue": "={{ $json.out_codigo || '' }}",
+              "rightValue": "REAGENDADA",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
+      "name": "¿Se Reagendó en BD?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk",
+          "mode": "list",
+          "cachedResultName": "AndresPDB",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zK2HbXnlRpmzXHs56oSaosJOa2RxE0V53WyMjm6GxXk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Cita": "={{ $('DB: Reagendar Cita Atómica').first().json.out_cita_id }}",
+            "Fecha Cita": "={{ new Date($('DB: Reagendar Cita Atómica').first().json.out_nueva_fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) }}",
+            "Servicio": "={{ $('DB: Reagendar Cita Atómica').first().json.out_servicio_nombre }}",
+            "Precio COP": "={{ $('DB: Reagendar Cita Atómica').first().json.out_precio }}",
+            "Estado": "Confirmada"
+          },
+          "matchingColumns": [
+            "ID Cita"
+          ],
+          "schema": [
+            {
+              "id": "ID Cita",
+              "displayName": "ID Cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha Cita",
+              "displayName": "Fecha Cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Servicio",
+              "displayName": "Servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Precio COP",
+              "displayName": "Precio COP",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a",
+      "name": "Google Sheets: Actualizar Horario Cita",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1100,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "H4BvN34tE73o9y6t",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "=5926139023",
+        "text": "=🔄 *¡CITA REPROGRAMADA POR WHATSAPP!* 💇✨\n\n👤 *Cliente:* {{ $('DB: Reagendar Cita Atómica').first().json.out_cliente_nombre }}\n💇 *Servicio:* {{ $('DB: Reagendar Cita Atómica').first().json.out_servicio_nombre }}\n📅 *Nuevo Horario:* {{ new Date($('DB: Reagendar Cita Atómica').first().json.out_nueva_fecha_inicio).toLocaleString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Bogota' }) }}\n⏱️ *Horario Anterior:* {{ new Date($('DB: Reagendar Cita Atómica').first().json.out_fecha_anterior).toLocaleString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Bogota' }) }}\n💰 *Valor:* ${{ Number($('DB: Reagendar Cita Atómica').first().json.out_precio || 45000).toLocaleString('es-CO') }} COP\n\n📱 *WhatsApp:* +{{ $('DB: Reagendar Cita Atómica').first().json.out_wa_id }}\n👉 [Toca aquí para chatear con el cliente](https://wa.me/{{ $('DB: Reagendar Cita Atómica').first().json.out_wa_id }})\n\n❌ *Para cancelar toca:* `/cancelar #{{ ($('DB: Reagendar Cita Atómica').first().json.out_cita_id || '').slice(0, 8) }}`",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
+      "name": "Telegram: Alerta Reagendamiento Andrés",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        200
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "ip1uLbMWnxO9XrUT",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const db = $('DB: Reagendar Cita Atómica').first().json;\n\nconst fecha = new Date(db.out_nueva_fecha_inicio).toLocaleString('es-CO', {\n  weekday: 'long', day: 'numeric', month: 'long',\n  hour: 'numeric', minute: '2-digit', hour12: true,\n  timeZone: 'America/Bogota'\n});\n\nreturn [{\n  json: {\n    exito: true,\n    codigo: 'REAGENDADA',\n    cita_id: db.out_cita_id,\n    servicio: db.out_servicio_nombre,\n    nueva_fecha: fecha,\n    precio_cop: db.out_precio,\n    mensaje_para_cliente: `¡Listo, ${db.out_cliente_nombre}! Tu cita para ${db.out_servicio_nombre} quedó reprogramada con éxito para el ${fecha}. ¡Te esperamos en Cra 83 # 09! ✨`\n  }\n}];"
+      },
+      "id": "f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c",
+      "name": "Respuesta Éxito Reagendamiento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nconst codigo = r.out_codigo || 'ERROR_TECNICO';\n\nreturn [{\n  json: {\n    exito: false,\n    codigo: codigo,\n    mensaje_para_cliente: r.out_mensaje || 'No se pudo reagendar tu cita en este momento.',\n    alternativas: r.out_alternativas || null,\n    instruccion_agente: codigo === 'HORARIO_OCUPADO'\n      ? 'El nuevo horario está ocupado por otra persona. Comunica mensaje_para_cliente ofreciendo las alternativas indicadas.'\n      : 'Comunica mensaje_para_cliente con amabilidad.'\n  }\n}];"
+      },
+      "id": "a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d",
+      "name": "Respuesta Rechazo Reagendamiento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Tool Trigger: Reagendar Cita": {
+      "main": [
+        [
+          {
+            "node": "Parsear Fecha Reagendamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Fecha Reagendamiento": {
+      "main": [
+        [
+          {
+            "node": "DB: Reagendar Cita Atómica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Reagendar Cita Atómica": {
+      "main": [
+        [
+          {
+            "node": "¿Se Reagendó en BD?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se Reagendó en BD?": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Actualizar Horario Cita",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta Rechazo Reagendamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Actualizar Horario Cita": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Alerta Reagendamiento Andrés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Alerta Reagendamiento Andrés": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Éxito Reagendamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
