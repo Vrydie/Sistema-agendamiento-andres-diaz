@@ -174,8 +174,64 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "H4BvN34tE73o9y6t",
+          "id": "nO3OdsbG8TNMXxZN",
           "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT google_event_id FROM citas WHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$('DB: Reagendar Cita Atómica').first().json.out_cita_id] }}"
+        }
+      },
+      "id": "e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+      "name": "DB: Obtener Google Event ID",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1250,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "eventId": "={{ $json.google_event_id || '' }}",
+        "start": "={{ $('DB: Reagendar Cita Atómica').first().json.out_nueva_fecha_inicio }}",
+        "end": "={{ $('DB: Reagendar Cita Atómica').first().json.out_nueva_fecha_fin }}",
+        "updateFields": {
+          "summary": "={{ $('DB: Reagendar Cita Atómica').first().json.out_servicio_nombre }} - {{ $('DB: Reagendar Cita Atómica').first().json.out_cliente_nombre }}"
+        }
+      },
+      "id": "f2a3b4c5-d6e7-8f9a-0b1c-2d3e4f5a6b7c",
+      "name": "Google Calendar: Actualizar Evento",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.2,
+      "position": [
+        1400,
+        200
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "SoIIpDmEsJRipbyk",
+          "name": "Google Calendar account"
         }
       },
       "onError": "continueRegularOutput"
@@ -193,7 +249,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1320,
+        1560,
         200
       ],
       "credentials": {
@@ -213,7 +269,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1540,
+        1720,
         200
       ]
     },
@@ -285,6 +341,28 @@
       ]
     },
     "Google Sheets: Actualizar Horario Cita": {
+      "main": [
+        [
+          {
+            "node": "DB: Obtener Google Event ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Obtener Google Event ID": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar: Actualizar Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar: Actualizar Evento": {
       "main": [
         [
           {

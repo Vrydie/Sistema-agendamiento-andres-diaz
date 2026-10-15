@@ -141,6 +141,58 @@
     },
     {
       "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT google_event_id FROM citas WHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$('DB: Cancelar Cita Cliente').first().json.out_cita_id] }}"
+        }
+      },
+      "id": "c4d5e6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f",
+      "name": "DB: Obtener Google Event ID Cancelado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1960,
+        -304
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "eventId": "={{ $json.google_event_id || '' }}",
+        "options": {}
+      },
+      "id": "d5e6f7a8-b9c0-1d2e-3f4a-5b6c7d8e9f0a",
+      "name": "Google Calendar: Eliminar Evento",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.2,
+      "position": [
+        2100,
+        -304
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "SoIIpDmEsJRipbyk",
+          "name": "Google Calendar account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
         "chatId": "=5926139023",
         "text": "=🚨 *¡CITA CANCELADA POR EL CLIENTE!* 🚨\n\n👤 *Cliente:* {{ $('DB: Cancelar Cita Cliente').first().json.out_cliente_nombre }}\n💇 *Servicio:* {{ $('DB: Cancelar Cita Cliente').first().json.out_servicio_nombre }}\n⏰ *Horario liberado:* {{ new Date($('DB: Cancelar Cita Cliente').first().json.out_fecha_inicio).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) }}\n💰 *Valor:* ${{ Number($('DB: Cancelar Cita Cliente').first().json.out_precio || 45000).toLocaleString('es-CO') }} COP\n\n📱 *WhatsApp:* +{{ $('DB: Cancelar Cita Cliente').first().json.out_wa_id }}\n👉 [Toca aquí para escribirle al cliente](https://wa.me/{{ $('DB: Cancelar Cita Cliente').first().json.out_wa_id }})\n\n✨ *Este cupo vuelve a estar 100% libre en tu agenda.*",
         "additionalFields": {
@@ -152,7 +204,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        2080,
+        2260,
         -304
       ],
       "webhookId": "3f99646a-15e2-4e95-b847-13be0046f26a",
@@ -173,7 +225,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2320,
+        2420,
         -304
       ]
     },
@@ -234,6 +286,28 @@
       ]
     },
     "Google Sheets: Marcar Cancelada": {
+      "main": [
+        [
+          {
+            "node": "DB: Obtener Google Event ID Cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Obtener Google Event ID Cancelado": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar: Eliminar Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar: Eliminar Evento": {
       "main": [
         [
           {

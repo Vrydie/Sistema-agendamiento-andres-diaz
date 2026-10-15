@@ -224,6 +224,61 @@
     },
     {
       "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "start": "={{ $('DB: Crear Cita Atómica').first().json.out_fecha_inicio }}",
+        "end": "={{ $('DB: Crear Cita Atómica').first().json.out_fecha_fin }}",
+        "additionalFields": {
+          "summary": "={{ $('DB: Crear Cita Atómica').first().json.out_servicio_nombre }} - {{ $('Parsear Fecha Cita').first().json.nombre_cliente }}",
+          "description": "=👤 Cliente: {{ $('Parsear Fecha Cita').first().json.nombre_cliente }}\n💇 Servicio: {{ $('DB: Crear Cita Atómica').first().json.out_servicio_nombre }}\n💰 Precio: ${{ Number($('DB: Crear Cita Atómica').first().json.out_precio || 45000).toLocaleString('es-CO') }} COP\n📱 WhatsApp: +{{ $('Parsear Fecha Cita').first().json.wa_id }}\n🆔 Cita ID: {{ $('DB: Crear Cita Atómica').first().json.out_cita_id }}"
+        }
+      },
+      "id": "c1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c",
+      "name": "Google Calendar: Crear Evento",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        -688
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "SoIIpDmEsJRipbyk",
+          "name": "Google Calendar account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE citas SET google_event_id = $1 WHERE id = $2;",
+        "options": {
+          "queryReplacement": "={{ [$json.id || null, $('DB: Crear Cita Atómica').first().json.out_cita_id] }}"
+        }
+      },
+      "id": "b3c4d5e6-f7a8-9b0c-1d2e-3f4a5b6c7d8e",
+      "name": "DB: Guardar Google Event ID",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        980,
+        -688
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EppjWtl0P6ZXP0fh",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
         "workflowId": {
           "__rl": true,
           "value": "p7UTle9RJtrlvnYr",
@@ -306,7 +361,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        848,
+        1160,
         -688
       ],
       "id": "a66a1c48-ce11-4cde-8291-850e9e6d2824",
@@ -322,7 +377,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1072,
+        1340,
         -688
       ]
     }
@@ -381,6 +436,28 @@
       ]
     },
     "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar: Crear Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar: Crear Evento": {
+      "main": [
+        [
+          {
+            "node": "DB: Guardar Google Event ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Guardar Google Event ID": {
       "main": [
         [
           {
