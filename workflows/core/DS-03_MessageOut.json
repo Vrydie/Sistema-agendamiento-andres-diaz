@@ -16,16 +16,14 @@
       "parameters": {
         "method": "POST",
         "url": "=https://graph.facebook.com/v21.0/1359724723893315/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer EAAe9koDu00wBSrI4VLHm2VVWcmU5izBWynBZBbJozo7XOffigRpT14BsM8bhVzzUiUF4yaRKX2t49KxokkZAQALyH0D4PLSnzcEsgPisndNLwhh4PCGZCdyhVHDelymTuQphayZAHauPnQORqzob5LJfj517akTq6McOsMEjp6ySu3iu2hbDToDBfRMsEVFF8gZDZD"
             }
           ]
         },
